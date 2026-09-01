@@ -1,31 +1,39 @@
 """
 Demonstration of the fixed-city TSP simulator.
 
-The simulator:
-1. Loads fixed city coordinates.
-2. Randomly selects a starting city.
-3. Exposes available actions.
-4. Selects actions sequentially.
-5. Records every transition.
-6. Closes the tour.
-7. Displays the exact simulator trajectory as an animation.
+This example:
 
-No RL or optimization is used yet.
+1. Loads the fixed five-city instance.
+2. Creates the simulator.
+3. Randomly selects a starting city.
+4. Displays the initial state.
+5. Selects valid actions sequentially.
+6. Records every simulator transition.
+7. Closes the tour.
+8. Displays the final result.
+9. Animates the exact simulator trajectory.
+
+No optimization or RL agent is used yet.
 """
 
 from pathlib import Path
 import sys
 
-from IPython.display import HTML, display
+import matplotlib.pyplot as plt
 
 # --------------------------------------------------
 # Locate project root
 # --------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = (
+    Path(__file__).resolve().parents[1]
+)
 
 if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
 
 # --------------------------------------------------
 # Imports
@@ -36,10 +44,10 @@ from tsp.simulator import TSPSimulator
 from tsp.visualization import animate_simulation
 
 
-def main() -> None:
+def main():
 
     # --------------------------------------------------
-    # 1. Locate fixed-city instance
+    # 1. Instance
     # --------------------------------------------------
 
     instance_path = (
@@ -49,6 +57,7 @@ def main() -> None:
     )
 
     if not instance_path.exists():
+
         raise FileNotFoundError(
             f"Could not find TSP instance:\n"
             f"{instance_path}"
@@ -64,17 +73,17 @@ def main() -> None:
 
     print(
         "Project root:",
-        PROJECT_ROOT
+        PROJECT_ROOT,
     )
 
     print(
         "Instance:",
-        instance.name
+        instance.name,
     )
 
     print(
         "Number of cities:",
-        instance.num_cities
+        instance.num_cities,
     )
 
     print("\nCoordinates:")
@@ -86,7 +95,7 @@ def main() -> None:
 
     simulator = TSPSimulator(
         instance,
-        seed=42
+        seed=42,
     )
 
     # --------------------------------------------------
@@ -100,26 +109,26 @@ def main() -> None:
 
     print(
         "Start city:",
-        state["start_city"]
+        state["start_city"],
     )
 
     print(
         "Current city:",
-        state["current_city"]
+        state["current_city"],
     )
 
     print(
         "Visited:",
-        state["visited"]
+        state["visited"],
     )
 
     print(
         "Available actions:",
-        state["available_actions"]
+        state["available_actions"],
     )
 
     # --------------------------------------------------
-    # 5. Execute simulator
+    # 5. Execute actions
     # --------------------------------------------------
 
     print("\nAction sequence")
@@ -141,11 +150,13 @@ def main() -> None:
         )
 
         # --------------------------------------------------
-        # Temporary action selection
+        # Temporary action-selection policy.
         #
-        # This will later be replaced by:
+        # This is NOT RL.
         #
-        # action = agent.select_action(state)
+        # Later this line becomes:
+        #
+        # selected_action = agent.select_action(state)
         # --------------------------------------------------
 
         selected_action = (
@@ -154,8 +165,10 @@ def main() -> None:
 
         print(
             f"Current city: {current_city} | "
-            f"Available actions: {available_actions} | "
-            f"Selected action: {selected_action}"
+            f"Available actions: "
+            f"{available_actions} | "
+            f"Selected action: "
+            f"{selected_action}"
         )
 
         simulator.step(
@@ -177,22 +190,22 @@ def main() -> None:
 
     print(
         "Start city:",
-        simulator.start_city
+        simulator.start_city,
     )
 
     print(
         "Tour:",
-        simulator.tour
+        simulator.tour,
     )
 
     print(
         "Closed:",
-        simulator.done
+        simulator.done,
     )
 
     print(
         "Total distance:",
-        simulator.total_distance
+        simulator.total_distance,
     )
 
     # --------------------------------------------------
@@ -201,19 +214,33 @@ def main() -> None:
 
     animation = animate_simulation(
         simulator,
-        interval=1200,
-        title="Fixed-City TSP Simulation"
+        interval=1500,
+        title="Fixed-City TSP Simulation",
     )
 
     # --------------------------------------------------
-    # 9. Display animation in Colab/Jupyter
+    # 9. Display
+    # --------------------------------------------------
+    #
+    # IMPORTANT:
+    # Do not use plt.show() here for Colab.
+    #
+    # Return the animation as HTML/JavaScript.
     # --------------------------------------------------
 
-    display(
-        HTML(
-            animation.to_jshtml()
+    try:
+
+        from IPython.display import HTML, display
+
+        display(
+            HTML(
+                animation.to_jshtml()
+            )
         )
-    )
+
+    except ImportError:
+
+        plt.show()
 
 
 if __name__ == "__main__":
