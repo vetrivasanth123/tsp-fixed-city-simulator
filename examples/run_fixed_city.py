@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -11,20 +10,11 @@ from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
 
 
-def main() -> None:
+def main():
 
-    instance_path = (
-        PROJECT_ROOT
-        / "instances"
-        / "five_cities.json"
+    instance = TSPInstance.from_json(
+        PROJECT_ROOT / "instances" / "five_cities.json"
     )
-
-    output_dir = PROJECT_ROOT / "outputs"
-    output_dir.mkdir(exist_ok=True)
-
-    output_path = output_dir / "fixed_city_run.json"
-
-    instance = TSPInstance.from_json(instance_path)
 
     simulator = TSPSimulator(instance)
 
@@ -44,8 +34,6 @@ def main() -> None:
     print("Visited:", state["visited"])
     print("Available actions:", state["available_actions"])
 
-    actions = []
-
     print("\nAction sequence")
     print("---------------")
 
@@ -54,7 +42,7 @@ def main() -> None:
         state = simulator.state()
         available = state["available_actions"]
 
-        # Temporary action policy.
+        # Temporary policy.
         # Later replaced by the RL agent.
         action = simulator._rng.choice(available)
 
@@ -64,7 +52,6 @@ def main() -> None:
             f"Selected action: {action}"
         )
 
-        actions.append(action)
         simulator.step(action)
 
     simulator.close_tour()
@@ -76,21 +63,8 @@ def main() -> None:
     print("Closed:", simulator.done)
     print("Total distance:", simulator.total_distance)
 
-    # Save EXACT simulation trajectory.
-    data = {
-        "instance": instance.name,
-        "start_city": simulator.start_city,
-        "actions": actions,
-        "tour": simulator.tour,
-        "total_distance": simulator.total_distance,
-    }
-
-    output_path.write_text(
-        json.dumps(data, indent=2)
-    )
-
-    print("\nSaved exact simulation to:")
-    print(output_path)
+    print("\nSimulation recorded in memory.")
+    print("Run run_visualize.py to display this exact run.")
 
 
 if __name__ == "__main__":
