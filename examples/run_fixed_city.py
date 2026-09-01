@@ -6,18 +6,17 @@ The demonstration:
 1. Loads the fixed five-city instance.
 2. Creates the simulator.
 3. Randomly selects a starting city.
-4. Displays the initial simulator state.
-5. Selects one valid action at a time.
-6. Executes each action inside the animation.
-7. Visually shows each selected city and connecting edge.
-8. Automatically closes the tour.
-9. Reports the final tour and distance.
+4. Displays the initial state.
+5. Selects valid actions sequentially.
+6. Records every simulator transition.
+7. Closes the tour.
+8. Displays the final result.
+9. Animates the exact simulator trajectory.
 
-There is no RL agent yet.
+No optimization or RL agent is used yet.
 
-The action-selection function is deliberately separated so that
-it can later be replaced by an RL policy without changing the
-simulator or visualization architecture.
+The action-selection section is deliberately separated from
+the simulator so that a future RL agent can replace it directly.
 """
 
 from pathlib import Path
@@ -29,44 +28,29 @@ import matplotlib.pyplot as plt
 # Locate project root
 # --------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(
+    __file__
+).resolve().parents[1]
 
 if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
 
+# --------------------------------------------------
+# Project imports
+# --------------------------------------------------
 
 from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
 from tsp.visualization import animate_simulation
 
 
-def select_action(state: dict) -> int:
-    """
-    Temporary action-selection policy.
-
-    For now we simply select the first available city.
-
-    Later this function will be replaced by something such as:
-
-        action = agent.select_action(state)
-
-    or an RL policy.
-    """
-
-    available_actions = state["available_actions"]
-
-    if not available_actions:
-        raise RuntimeError(
-            "No available actions remain."
-        )
-
-    return available_actions[0]
-
-
 def main() -> None:
 
     # --------------------------------------------------
-    # 1. Load fixed five-city instance
+    # 1. Locate instance
     # --------------------------------------------------
 
     instance_path = (
@@ -80,6 +64,10 @@ def main() -> None:
             f"Could not find TSP instance:\n"
             f"{instance_path}"
         )
+
+    # --------------------------------------------------
+    # 2. Load fixed cities
+    # --------------------------------------------------
 
     instance = TSPInstance.from_json(
         instance_path
@@ -104,12 +92,8 @@ def main() -> None:
     print(instance.coordinates)
 
     # --------------------------------------------------
-    # 2. Create simulator
+    # 3. Create simulator
     # --------------------------------------------------
-
-    # Use a seed if you want reproducible demonstrations.
-    #
-    # Remove/change the seed later when random starts are desired.
 
     simulator = TSPSimulator(
         instance,
@@ -117,7 +101,7 @@ def main() -> None:
     )
 
     # --------------------------------------------------
-    # 3. Display initial state
+    # 4. Initial state
     # --------------------------------------------------
 
     state = simulator.state()
@@ -146,26 +130,70 @@ def main() -> None:
     )
 
     # --------------------------------------------------
-    # 4. Create animated simulation
+    # 5. Sequential action selection
     # --------------------------------------------------
 
-    print("\nStarting animated simulation...")
+    print("\nAction sequence")
+    print("---------------")
 
-    animation = animate_simulation(
-        simulator=simulator,
-        action_selector=select_action,
-        interval=1200,
-        title="Fixed-City TSP Simulation",
-    )
+    while not simulator.done:
 
-    # Keep the animation alive.
-    # In a normal Python environment this opens the Matplotlib
-    # animation window.
+        state = simulator.state()
 
-    plt.show()
+        available_actions = (
+            state["available_actions"]
+        )
+
+        # ----------------------------------------------
+        # All cities have been visited.
+        # ----------------------------------------------
+
+        if not available_actions:
+            break
+
+        current_city = (
+            state["current_city"]
+        )
+
+        # --------------------------------------------------
+        # TEMPORARY ACTION SELECTION
+        # --------------------------------------------------
+        #
+        # This is NOT an optimization algorithm.
+        #
+        # It is only a placeholder demonstrating how
+        # an agent will interact with the simulator.
+        #
+        # Later:
+        #
+        #     selected_action = agent.select_action(state)
+        #
+        # --------------------------------------------------
+
+        selected_action = (
+            available_actions[0]
+        )
+
+        print(
+            f"Current city: {current_city} | "
+            f"Available actions: "
+            f"{available_actions} | "
+            f"Selected action: "
+            f"{selected_action}"
+        )
+
+        simulator.step(
+            selected_action
+        )
 
     # --------------------------------------------------
-    # 5. Final result
+    # 6. Close tour
+    # --------------------------------------------------
+
+    simulator.close_tour()
+
+    # --------------------------------------------------
+    # 7. Final result
     # --------------------------------------------------
 
     print("\nFinal result")
@@ -190,6 +218,21 @@ def main() -> None:
         "Total distance:",
         simulator.total_distance,
     )
+
+    # --------------------------------------------------
+    # 8. Animate exact simulator trajectory
+    # --------------------------------------------------
+
+    animation = animate_simulation(
+        simulator,
+        interval=1200,
+        title="Fixed-City TSP Simulation",
+    )
+
+    # Keep a reference to the animation until plt.show().
+    _ = animation
+
+    plt.show()
 
 
 if __name__ == "__main__":
