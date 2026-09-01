@@ -13,20 +13,56 @@ from tsp.simulator import TSPSimulator
 from tsp.visualization import save_simulation
 
 
+def choose_instance():
+    print("\nSelect cost model")
+    print("-----------------")
+    print("1. Euclidean cost")
+    print("2. Custom cost matrix")
+    print("3. Exit")
+
+    while True:
+        choice = input("\nEnter your choice (1/2/3): ").strip()
+
+        if choice == "1":
+            path = PROJECT_ROOT / "instances" / "five_cities.json"
+            return TSPInstance.from_json(path)
+
+        if choice == "2":
+            path = (
+                PROJECT_ROOT
+                / "instances"
+                / "five_cities_custom_cost.json"
+            )
+
+            if not path.exists():
+                raise FileNotFoundError(
+                    f"Custom cost instance not found:\n{path}"
+                )
+
+            return TSPInstance.from_json(path)
+
+        if choice == "3":
+            print("Exiting.")
+            sys.exit(0)
+
+        print("Invalid choice. Please enter 1, 2, or 3.")
+
+
 def main():
-    instance = TSPInstance.from_json(
-        PROJECT_ROOT / "instances" / "five_cities.json"
-    )
+    instance = choose_instance()
 
     simulator = TSPSimulator(instance)
     rng = random.Random()
 
-    print("Project root:", PROJECT_ROOT)
+    print("\nProject root:", PROJECT_ROOT)
     print("Instance:", instance.name)
     print("Number of cities:", instance.num_cities)
 
     print("\nCoordinates:")
     print(instance.coordinates)
+
+    print("\nCost matrix:")
+    print(instance.cost_matrix)
 
     state = simulator.state()
 
