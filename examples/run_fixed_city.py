@@ -1,53 +1,23 @@
-
 """
-Demonstration of the fixed-city TSP simulator.
+Run the fixed-city TSP simulator and immediately visualize
+the exact simulator trajectory.
 
-The complete workflow is:
-
-    fixed city instance
-          ↓
-    simulator reset
-          ↓
-    random starting city
-          ↓
-    random valid action
-          ↓
-    simulator.step(action)
-          ↓
-    record transition
-          ↓
-    repeat
-          ↓
-    close tour
-          ↓
-    replay exact trajectory as an animation
-
-No optimization or RL agent is used yet.
-
-The random action policy is only a temporary placeholder.
-Later it will be replaced by an RL agent.
+No RL or optimization is used yet.
 """
 
 from pathlib import Path
 import sys
-import random
 
 from IPython.display import HTML, display
 
 # --------------------------------------------------
-# Locate project root
+# Project root
 # --------------------------------------------------
 
-PROJECT_ROOT = Path(
-    __file__
-).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 if str(PROJECT_ROOT) not in sys.path:
-
-    sys.path.insert(
-        0,
-        str(PROJECT_ROOT),
-    )
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # --------------------------------------------------
 # Imports
@@ -61,7 +31,7 @@ from tsp.visualization import animate_simulation
 def main():
 
     # --------------------------------------------------
-    # 1. Locate instance
+    # 1. Load fixed instance
     # --------------------------------------------------
 
     instance_path = (
@@ -69,17 +39,6 @@ def main():
         / "instances"
         / "five_cities.json"
     )
-
-    if not instance_path.exists():
-
-        raise FileNotFoundError(
-            f"Could not find TSP instance:\n"
-            f"{instance_path}"
-        )
-
-    # --------------------------------------------------
-    # 2. Load fixed-city instance
-    # --------------------------------------------------
 
     instance = TSPInstance.from_json(
         instance_path
@@ -104,19 +63,16 @@ def main():
     print(instance.coordinates)
 
     # --------------------------------------------------
-    # 3. Create simulator
-    # --------------------------------------------------
-
-    # No seed is supplied.
+    # 2. Create simulator
     #
-    # Therefore the starting city is random.
+    # No seed -> different starting city can be selected
+    # on different executions.
+    # --------------------------------------------------
 
-    simulator = TSPSimulator(
-        instance
-    )
+    simulator = TSPSimulator(instance)
 
     # --------------------------------------------------
-    # 4. Initial state
+    # 3. Initial state
     # --------------------------------------------------
 
     state = simulator.state()
@@ -145,7 +101,14 @@ def main():
     )
 
     # --------------------------------------------------
-    # 5. Execute actions
+    # 4. Execute simulator
+    #
+    # This is the temporary action policy.
+    #
+    # Later:
+    #
+    #     selected_action = agent.select_action(state)
+    #
     # --------------------------------------------------
 
     print("\nAction sequence")
@@ -155,59 +118,32 @@ def main():
 
         state = simulator.state()
 
-        available_actions = (
-            state["available_actions"]
-        )
+        actions = state["available_actions"]
 
-        if not available_actions:
+        if not actions:
             break
 
-        current_city = (
-            state["current_city"]
-        )
+        current_city = state["current_city"]
 
-        # --------------------------------------------------
-        # TEMPORARY ACTION POLICY
-        # --------------------------------------------------
-        #
-        # This is NOT RL.
-        #
-        # Choose one of the currently valid cities randomly.
-        #
-        # Later this becomes:
-        #
-        # selected_action = agent.select_action(state)
-        #
-        # --------------------------------------------------
-
-        selected_action = random.choice(
-            available_actions
-        )
+        # Temporary deterministic policy.
+        selected_action = actions[0]
 
         print(
             f"Current city: {current_city} | "
-            f"Available actions: "
-            f"{available_actions} | "
-            f"Selected action: "
-            f"{selected_action}"
+            f"Available actions: {actions} | "
+            f"Selected action: {selected_action}"
         )
 
-        # --------------------------------------------------
-        # Actual simulator transition
-        # --------------------------------------------------
-
-        simulator.step(
-            selected_action
-        )
+        simulator.step(selected_action)
 
     # --------------------------------------------------
-    # 6. Close tour
+    # 5. Close tour
     # --------------------------------------------------
 
     simulator.close_tour()
 
     # --------------------------------------------------
-    # 7. Final result
+    # 6. Final result
     # --------------------------------------------------
 
     print("\nFinal result")
@@ -234,12 +170,10 @@ def main():
     )
 
     # --------------------------------------------------
-    # 8. Create animation from exact trajectory
+    # 7. Animate EXACT trajectory
     # --------------------------------------------------
 
-    print(
-        "\nRendering simulation animation..."
-    )
+    print("\nRendering simulation animation...")
 
     animation = animate_simulation(
         simulator,
@@ -248,13 +182,13 @@ def main():
     )
 
     # --------------------------------------------------
-    # 9. Render as an actual HTML5 video
+    # 8. Display immediately in Colab/Jupyter
     # --------------------------------------------------
 
-    video_html = animation.to_html5_video()
-
     display(
-        HTML(video_html)
+        HTML(
+            animation.to_jshtml()
+        )
     )
 
     return animation
@@ -262,4 +196,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
