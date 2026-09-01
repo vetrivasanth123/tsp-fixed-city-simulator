@@ -1,23 +1,43 @@
+"""
+Visualization utilities for the fixed-city TSP simulator.
+
+The animation shows the exact trajectory recorded by the simulator:
+
+    start city
+        ↓
+    choose next city
+        ↓
+    connect cities
+        ↓
+    repeat
+        ↓
+    close complete tour
+
+No RL or optimization is performed here.
+"""
+
 from __future__ import annotations
 
-from typing import Optional
+from typing import Iterable, Optional, Sequence
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 
 from .instance import TSPInstance
+from .utils import tour_length
 
 
 def plot_cities(
     instance: TSPInstance,
     ax: Optional[plt.Axes] = None,
-    title: str = "TSP Cities",
+    show_labels: bool = True,
+    title: str = "TSP City Locations",
 ) -> plt.Axes:
-    """Plot the fixed city locations."""
+    """Plot fixed city locations."""
 
     if ax is None:
-        _, ax = plt.subplots(figsize=(8, 6))
+        _, ax = plt.subplots()
 
     coordinates = np.asarray(
         instance.coordinates,
@@ -31,44 +51,115 @@ def plot_cities(
         zorder=3,
     )
 
-    for city, (x, y) in enumerate(coordinates):
-        ax.annotate(
-            f"City {city}",
-            (x, y),
-            xytext=(7, 7),
-            textcoords="offset points",
-        )
+    if show_labels:
+        for city, (x, y) in enumerate(coordinates):
+            ax.annotate(
+                str(city),
+                (x, y),
+                xytext=(7, 7),
+                textcoords="offset points",
+            )
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
-    ax.set_title(title)
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True, alpha=0.3)
 
     return ax
 
 
+def plot_tour(
+    instance: TSPInstance,
+    tour: Sequence[int],
+    ax: Optional[plt.Axes] = None,
+    show_labels: bool = True,
+    show_distance: bool = True,
+    close_tour: bool = True,
+    title: str = "TSP Tour",
+) -> plt.Axes:
+    """Plot a complete TSP tour."""
+
+    tour = list(tour)
+    _validate_tour(instance, tour)
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    coordinates = np.asarray(
+        instance.coordinates,
+        dtype=float,
+    )
+
+    plot_cities(
+        instance,
+        ax=ax,
+        show_labels=show_labels,
+        title=title,
+    )
+
+    route = tour + [tour[0]] if close_tour else tour
+
+    points = coordinates[route]
+
+    ax.plot(
+        points[:, 0],
+        points[:, 1],
+        marker="o",
+        linewidth=2,
+        zorder=2,
+    )
+
+    if show_distance:
+        distance = tour_length(
+            tour,
+            instance.distance_matrix,
+        )
+
+        ax.set_title(
+            f"{title} — Distance: {distance:.4f}"
+        )
+
+    return ax
+
+
+def plot_tour_from_simulator(
+    simulator,
+    ax: Optional[plt.Axes] = None,
+    show_labels: bool = True,
+    show_distance: bool = True,
+    title: str = "TSP Tour",
+) -> plt.Axes:
+    """Plot the current simulator tour."""
+
+    return plot_tour(
+        simulator.instance,
+        simulator.tour,
+        ax=ax,
+        show_labels=show_labels,
+        show_distance=show_distance,
+        close_tour=simulator.done,
+        title=title,
+    )
+
+
 def animate_simulation(
     simulator,
     interval: int = 1200,
+    show_labels: bool = True,
     title: str = "Fixed-City TSP Simulation",
 ):
     """
     Animate the exact trajectory produced by the simulator.
 
-    The animation shows:
-    1. Starting city.
-    2. Current city.
-    3. Selected next city.
-    4. Route after the action.
-    5. Final return to the starting city.
+    The animation is generated from simulator.history, so it shows
+    the same actions and city sequence that actually occurred.
     """
 
     history = simulator.trajectory()
 
     if not history:
         raise ValueError(
-            "Simulator has no recorded trajectory."
+            "Simulator contains no recorded trajectory."
         )
 
     instance = simulator.instance
@@ -79,59 +170,67 @@ def animate_simulation(
     )
 
     # --------------------------------------------------
-    # Build visual frames from the actual trajectory
+    # Convert simulator events into visual frames
     # --------------------------------------------------
 
     frames = []
 
     for record in history:
 
-        if record["event"] == "start":
+        event = record["event"]
+
+        if event == "start":
 
             frames.append({
                 "type": "start",
                 "current": record["current_city"],
                 "selected": None,
-                "tour": record["tour"],
-                "available": record["available_actions"],
+                "tour": list(record["tour"]),
+                "available": list(
+                    record["available_actions"]
+                ),
                 "distance": record["total_distance"],
             })
 
-        elif record["event"] == "step":
+        elif event == "step":
 
             # Decision frame:
-            # current city selects the next city.
+            # current city chooses the next city.
             frames.append({
                 "type": "decision",
                 "current": record["previous_city"],
                 "selected": record["action"],
-                "tour": record["tour"][:-1],
-                "available": record["available_actions"],
+                "tour": list(record["tour"][:-1]),
+                "available": list(
+                    record["available_actions"]
+                ),
                 "distance": (
                     record["total_distance"]
                     - record["distance_added"]
                 ),
             })
 
-            # Result frame:
-            # action has now happened.
+            # Movement/result frame:
+            # the selected city becomes current.
             frames.append({
                 "type": "move",
                 "current": record["current_city"],
                 "selected": None,
-                "tour": record["tour"],
-                "available": record["available_actions"],
+                "tour": list(record["tour"]),
+                "available": list(
+                    record["available_actions"]
+                ),
                 "distance": record["total_distance"],
             })
 
-        elif record["event"] == "close":
+        elif event == "close":
 
-            # Decision to return to start.
+            # Closing decision.
             frames.append({
                 "type": "decision",
                 "current": record["previous_city"],
                 "selected": record["action"],
-                "tour": record["tour"],
+                "tour": list(record["tour"]),
                 "available": [],
                 "distance": (
                     record["total_distance"]
@@ -139,12 +238,12 @@ def animate_simulation(
                 ),
             })
 
-            # Completed tour.
+            # Final result.
             frames.append({
                 "type": "complete",
                 "current": record["action"],
                 "selected": None,
-                "tour": record["tour"],
+                "tour": list(record["tour"]),
                 "available": [],
                 "distance": record["total_distance"],
             })
@@ -153,13 +252,15 @@ def animate_simulation(
     # Figure
     # --------------------------------------------------
 
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(
+        figsize=(8, 6)
+    )
 
     x = coordinates[:, 0]
     y = coordinates[:, 1]
 
-    margin_x = max(np.ptp(x) * 0.20, 0.5)
-    margin_y = max(np.ptp(y) * 0.20, 0.5)
+    margin_x = max(np.ptp(x) * 0.25, 1.0)
+    margin_y = max(np.ptp(y) * 0.25, 1.0)
 
     ax.set_xlim(
         x.min() - margin_x,
@@ -171,15 +272,16 @@ def animate_simulation(
         y.max() + margin_y,
     )
 
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_aspect(
+        "equal",
+        adjustable="box",
+    )
+
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.grid(True, alpha=0.3)
 
-    # --------------------------------------------------
-    # Fixed cities
-    # --------------------------------------------------
-
+    # Fixed cities.
     ax.scatter(
         x,
         y,
@@ -187,18 +289,17 @@ def animate_simulation(
         zorder=3,
     )
 
-    for city, (cx, cy) in enumerate(coordinates):
-        ax.annotate(
-            f"City {city}",
-            (cx, cy),
-            xytext=(7, 7),
-            textcoords="offset points",
-        )
+    if show_labels:
+        for city, (cx, cy) in enumerate(coordinates):
+            ax.annotate(
+                str(city),
+                (cx, cy),
+                xytext=(8, 8),
+                textcoords="offset points",
+                fontsize=11,
+            )
 
-    # --------------------------------------------------
-    # Dynamic objects
-    # --------------------------------------------------
-
+    # Route.
     route_line, = ax.plot(
         [],
         [],
@@ -206,6 +307,7 @@ def animate_simulation(
         zorder=2,
     )
 
+    # Current city.
     current_marker, = ax.plot(
         [],
         [],
@@ -215,6 +317,7 @@ def animate_simulation(
         zorder=5,
     )
 
+    # Selected city.
     selected_marker, = ax.plot(
         [],
         [],
@@ -224,6 +327,7 @@ def animate_simulation(
         zorder=6,
     )
 
+    # Start city.
     start_marker, = ax.plot(
         [],
         [],
@@ -233,9 +337,13 @@ def animate_simulation(
         zorder=4,
     )
 
-    # --------------------------------------------------
-    # Marker helper
-    # --------------------------------------------------
+    # Available cities.
+    available_marker = ax.scatter(
+        [],
+        [],
+        s=140,
+        zorder=4,
+    )
 
     def set_marker(marker, city):
 
@@ -248,10 +356,6 @@ def animate_simulation(
             [coordinates[city, 1]],
         )
 
-    # --------------------------------------------------
-    # Initialize
-    # --------------------------------------------------
-
     def init():
 
         route_line.set_data([], [])
@@ -259,98 +363,123 @@ def animate_simulation(
         selected_marker.set_data([], [])
         start_marker.set_data([], [])
 
+        available_marker.set_offsets(
+            np.empty((0, 2))
+        )
+
         return (
             route_line,
             current_marker,
             selected_marker,
             start_marker,
+            available_marker,
         )
 
-    # --------------------------------------------------
-    # Update animation
-    # --------------------------------------------------
+    def update(index):
 
-    def update(frame_index):
+        frame = frames[index]
 
-        frame = frames[frame_index]
-
-        tour = frame["tour"]
+        frame_type = frame["type"]
         current = frame["current"]
         selected = frame["selected"]
+        tour = frame["tour"]
+        available = frame["available"]
         distance = frame["distance"]
 
+        # ----------------------------------------------
         # Route
+        # ----------------------------------------------
+
         if tour:
-            route = coordinates[tour]
+
+            points = coordinates[tour]
 
             route_line.set_data(
-                route[:, 0],
-                route[:, 1],
+                points[:, 0],
+                points[:, 1],
             )
+
         else:
             route_line.set_data([], [])
 
-        # Current city
+        # ----------------------------------------------
+        # Markers
+        # ----------------------------------------------
+
         set_marker(
             current_marker,
             current,
         )
 
-        # Start city
         set_marker(
             start_marker,
             simulator.start_city,
         )
 
-        # Selected city
         set_marker(
             selected_marker,
             selected,
         )
 
+        if available:
+
+            available_marker.set_offsets(
+                coordinates[available]
+            )
+
+        else:
+
+            available_marker.set_offsets(
+                np.empty((0, 2))
+            )
+
+        # ----------------------------------------------
         # Text
-        if frame["type"] == "start":
+        # ----------------------------------------------
+
+        if frame_type == "start":
 
             ax.set_title(
                 f"{title}\n"
-                f"Start → City {current}\n"
-                f"Available: {frame['available']}"
+                f"START → City {current}\n"
+                f"Available: {available}"
             )
 
-        elif frame["type"] == "decision":
+        elif frame_type == "decision":
 
             ax.set_title(
                 f"{title}\n"
-                f"City {current} → City {selected}\n"
-                f"Selecting next city | "
-                f"Distance: {distance:.3f}"
+                f"City {current}  →  "
+                f"Choosing City {selected}\n"
+                f"Available: {available}  |  "
+                f"Distance: {distance:.4f}"
             )
 
-        elif frame["type"] == "move":
+        elif frame_type == "move":
 
             ax.set_title(
                 f"{title}\n"
                 f"Moved to City {current}\n"
-                f"Tour: {tour} | "
-                f"Distance: {distance:.3f}"
+                f"Tour: {tour}  |  "
+                f"Distance: {distance:.4f}"
             )
 
-        elif frame["type"] == "complete":
+        elif frame_type == "complete":
 
-            # Draw final edge back to start.
+            # Draw final return edge.
             closed_route = tour + [simulator.start_city]
-            route = coordinates[closed_route]
+            points = coordinates[closed_route]
 
             route_line.set_data(
-                route[:, 0],
-                route[:, 1],
+                points[:, 0],
+                points[:, 1],
             )
 
             ax.set_title(
                 f"{title}\n"
-                f"✓ COMPLETE TOUR\n"
+                f"COMPLETE TOUR\n"
                 f"{tour} → {simulator.start_city}\n"
-                f"Total distance: {distance:.3f}"
+                f"Total distance: {distance:.4f}"
             )
 
         return (
@@ -358,11 +487,8 @@ def animate_simulation(
             current_marker,
             selected_marker,
             start_marker,
+            available_marker,
         )
-
-    # --------------------------------------------------
-    # Animation
-    # --------------------------------------------------
 
     animation = FuncAnimation(
         fig,
@@ -374,62 +500,31 @@ def animate_simulation(
         blit=False,
     )
 
+    # Keep the figure alive for notebook rendering.
+    animation._fig = fig
+
     return animation
 
 
-def plot_tour_from_simulator(
-    simulator,
-    ax: Optional[plt.Axes] = None,
-):
-    """Plot the simulator's current completed tour."""
+def _validate_tour(
+    instance: TSPInstance,
+    tour: Iterable[int],
+) -> None:
+    """Validate a complete TSP tour."""
 
-    if not simulator.done:
+    tour = list(tour)
+
+    if len(tour) != instance.num_cities:
         raise ValueError(
-            "The simulator tour must be completed first."
+            f"Tour must contain exactly "
+            f"{instance.num_cities} cities; "
+            f"received {len(tour)}."
         )
 
-    coordinates = np.asarray(
-        simulator.instance.coordinates,
-        dtype=float,
-    )
-
-    tour = list(simulator.tour)
-    route = tour + [simulator.start_city]
-
-    if ax is None:
-        _, ax = plt.subplots(figsize=(8, 6))
-
-    ax.scatter(
-        coordinates[:, 0],
-        coordinates[:, 1],
-        s=100,
-    )
-
-    for city, (x, y) in enumerate(coordinates):
-        ax.annotate(
-            f"City {city}",
-            (x, y),
-            xytext=(7, 7),
-            textcoords="offset points",
+    if sorted(tour) != list(
+        range(instance.num_cities)
+    ):
+        raise ValueError(
+            "Tour must contain every city "
+            "index exactly once."
         )
-
-    route_coordinates = coordinates[route]
-
-    ax.plot(
-        route_coordinates[:, 0],
-        route_coordinates[:, 1],
-        marker="o",
-        linewidth=2.5,
-    )
-
-    ax.set_title(
-        f"Completed TSP Tour — "
-        f"Distance: {simulator.total_distance:.3f}"
-    )
-
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_aspect("equal", adjustable="box")
-    ax.grid(True, alpha=0.3)
-
-    return ax
