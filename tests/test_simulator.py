@@ -1,4 +1,6 @@
 
+"""Tests for the fixed-city TSP simulator."""
+
 from pathlib import Path
 
 import pytest
@@ -7,16 +9,14 @@ from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
 
 
-INSTANCE_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "instances"
-    / "five_cities.json"
-)
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_PATH = ROOT / "instances" / "five_cities.json"
+CUSTOM_PATH = ROOT / "instances" / "five_cities_custom_cost.json"
 
 
 @pytest.fixture
 def instance():
-    return TSPInstance.from_json(INSTANCE_PATH)
+    return TSPInstance.from_json(DEFAULT_PATH)
 
 
 @pytest.fixture
@@ -84,6 +84,20 @@ def test_cost_updates_after_step(simulator):
     assert simulator.total_cost == pytest.approx(expected)
 
 
+def test_simulator_uses_custom_cost():
+    instance = TSPInstance.from_json(CUSTOM_PATH)
+    simulator = TSPSimulator(instance, seed=42)
+
+    current = simulator.current_city
+    next_city = simulator.available_actions()[0]
+
+    expected = instance.cost(current, next_city)
+
+    simulator.step(next_city)
+
+    assert simulator.total_cost == pytest.approx(expected)
+
+
 def test_multiple_steps_build_tour(simulator):
     actions = simulator.available_actions()[:3]
 
@@ -100,7 +114,6 @@ def test_close_tour_returns_to_start(simulator):
         simulator.step(simulator.available_actions()[0])
 
     cost_before = simulator.total_cost
-
     final_edge = simulator.instance.cost(
         simulator.current_city,
         simulator.start_city,
@@ -168,17 +181,17 @@ def test_step_after_completion_is_rejected(simulator):
 def test_state_contains_cost(simulator):
     state = simulator.state()
 
-    assert "tour" in state
-    assert "current_city" in state
-    assert "start_city" in state
-    assert "visited" in state
-    assert "available_actions" in state
-    assert "total_cost" in state
-    assert "total_distance" in state
-    assert "done" in state
+    required = {
+        "tour",
+        "current_city",
+        "start_city",
+        "visited",
+        "available_actions",
+        "total_cost",
+        "total_distance",
+        "done",
+    }
 
-    assert (
-        state["available_actions"]
-        == simulator.available_actions()
-    )
+    assert required.issubset(state)
+    assert state["available_actions"] == simulator.available_actions()
 
