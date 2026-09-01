@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -8,12 +7,13 @@ import numpy as np
 
 
 class TSPInstance:
-    """Fixed TSP instance with separate distance and cost definitions."""
+    """TSP instance with a general edge-cost matrix."""
 
     def __init__(
         self,
         coordinates: np.ndarray,
         name: str = "tsp_instance",
+        cost_matrix: np.ndarray | None = None,
     ) -> None:
         coordinates = np.asarray(coordinates, dtype=float)
 
@@ -22,23 +22,39 @@ class TSPInstance:
         if coordinates.shape[1] != 2:
             raise ValueError("Each city must have exactly two coordinates.")
         if coordinates.shape[0] < 2:
-            raise ValueError(
-                "A TSP instance must contain at least two cities."
-            )
+            raise ValueError("A TSP instance must contain at least two cities.")
         if not np.all(np.isfinite(coordinates)):
-            raise ValueError(
-                "coordinates must contain only finite values."
-            )
+            raise ValueError("coordinates must contain only finite values.")
 
         self.name = name
         self.coordinates = coordinates
-        self.num_cities = coordinates.shape[0]
+        self.num_cities = len(coordinates)
 
-        differences = (
-            coordinates[:, np.newaxis, :]
-            - coordinates[np.newaxis, :, :]
-        )
-        self.distance_matrix = np.linalg.norm(differences, axis=2)
+        if cost_matrix is None:
+            differences = (
+                coordinates[:, None, :]
+                - coordinates[None, :, :]
+            )
+            cost_matrix = np.linalg.norm(differences, axis=2)
+
+        cost_matrix = np.asarray(cost_matrix, dtype=float)
+
+        if cost_matrix.shape != (
+            self.num_cities,
+            self.num_cities,
+        ):
+            raise ValueError("cost_matrix must be N x N.")
+
+        if not np.all(np.isfinite(cost_matrix)):
+            raise ValueError("cost_matrix must contain finite values.")
+
+        if np.any(cost_matrix < 0):
+            raise ValueError("cost_matrix cannot contain negative values.")
+
+        self.cost_matrix = cost_matrix
+
+        # Backward-compatible Euclidean terminology.
+        self.distance_matrix = self.cost_matrix
 
     @classmethod
     def from_json(cls, path: str | Path) -> "TSPInstance":
@@ -50,9 +66,7 @@ class TSPInstance:
             data = json.load(f)
 
         if "cities" not in data:
-            raise ValueError(
-                "JSON file must contain a top-level 'cities' field."
-            )
+            raise ValueError("JSON file must contain a top-level 'cities' field.")
 
         cities = data["cities"]
 
@@ -64,27 +78,22 @@ class TSPInstance:
             dtype=float,
         )
 
-        return cls(
-            coordinates=coordinates,
-            name=path.stem,
-        )
+        return cls(coordinates, name=path.stem)
 
-    def distance(self, city_a: int, city_b: int) -> float:
-        """Return the geometric Euclidean distance."""
+    def cost(self, city_a: int, city_b: int) -> float:
+        """Return the cost of travelling from city_a to city_b."""
 
         self._validate_city_index(city_a)
         self._validate_city_index(city_b)
 
-        return float(self.distance_matrix[city_a, city_b])
+        return float(self.cost_matrix[city_a, city_b])
 
-    def cost(self, city_a: int, city_b: int) -> float:
-        """Return the edge cost used by the simulator."""
+    def distance(self, city_a: int, city_b: int) -> float:
+        """Backward-compatible alias for cost()."""
 
-        return self.distance(city_a, city_b)
+        return self.cost(city_a, city_b)
 
     def _validate_city_index(self, city_index: int) -> None:
-        """Validate a city index."""
-
         if not isinstance(city_index, (int, np.integer)):
             raise TypeError("city index must be an integer.")
 
@@ -93,4 +102,3 @@ class TSPInstance:
                 f"City index {city_index} is out of range "
                 f"for {self.num_cities} cities."
             )
-
