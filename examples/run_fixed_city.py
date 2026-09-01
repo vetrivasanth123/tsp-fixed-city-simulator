@@ -1,5 +1,6 @@
 
 from pathlib import Path
+import random
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -18,10 +19,12 @@ def main():
     )
 
     simulator = TSPSimulator(instance)
+    rng = random.Random()
 
     print("Project root:", PROJECT_ROOT)
     print("Instance:", instance.name)
     print("Number of cities:", instance.num_cities)
+
     print("\nCoordinates:")
     print(instance.coordinates)
 
@@ -41,7 +44,7 @@ def main():
         state = simulator.state()
         actions = state["available_actions"]
 
-        action = simulator._rng.choice(actions)
+        action = rng.choice(actions)
 
         print(
             f"Current city: {state['current_city']} | "
@@ -53,12 +56,14 @@ def main():
 
     simulator.close_tour()
 
+    closed_tour = simulator.tour + [simulator.start_city]
+
     print("\nFinal result")
     print("------------")
     print("Start city:", simulator.start_city)
-    print("Tour:", simulator.tour + [simulator.start_city])
+    print("Tour:", closed_tour)
     print("Closed:", simulator.done)
-    print("Total distance:", simulator.total_distance)
+    print("Total cost:", simulator.total_cost)
 
     save_simulation(simulator, PROJECT_ROOT)
 
