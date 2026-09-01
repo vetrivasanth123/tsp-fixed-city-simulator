@@ -1,144 +1,107 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import Any
 
 from .instance import TSPInstance
 
 
 class TSPSimulator:
-    """
-    Lightweight simulator for a fixed-city TSP.
+    """Deterministic simulator for constructing a TSP tour."""
 
-    The simulator maintains the state of a tour as cities are selected.
-    City coordinates and distances remain fixed throughout an episode.
-    """
-
-    def __init__(self, instance: TSPInstance):
+    def __init__(self, instance: TSPInstance) -> None:
         self.instance = instance
-        self.n_cities = instance.n_cities
+        self.reset()
 
+    def reset(self) -> dict[str, Any]:
+        """Reset the simulator to an empty tour."""
+
+        self.tour: list[int] = []
         self.current_city: int | None = None
-        self.visited: list[int] = []
         self.total_distance: float = 0.0
         self.done: bool = False
 
-    def reset(self, start_city: int = 0) -> dict:
+        return self.state()
+
+    def step(self, next_city: int) -> dict[str, Any]:
         """
-        Reset the simulator and start a new tour.
+        Visit the next city.
 
-        Parameters
-        ----------
-        start_city:
-            City from which the tour begins.
+        The first selected city becomes the starting city.
+        Subsequent cities add travel distance from the current city.
 
-        Returns
-        -------
-        dict
-            Initial simulator state.
-        """
-
-        self._validate_city(start_city)
-
-        self.current_city = start_city
-        self.visited = [start_city]
-        self.total_distance = 0.0
-        self.done = False
-
-        return self.get_state()
-
-    def step(self, next_city: int) -> dict:
-        """
-        Move from the current city to an unvisited city.
-
-        The final step automatically returns to the starting city.
-
-        Parameters
-        ----------
-        next_city:
-            Index of the next city to visit.
-
-        Returns
-        -------
-        dict
-            Updated simulator state.
+        When every city has been visited, the tour is automatically
+        closed by returning to the starting city.
         """
 
         if self.done:
-            raise RuntimeError("Episode is already complete. Call reset().")
-
-        if self.current_city is None:
-            raise RuntimeError("Simulator has not been reset.")
+            raise RuntimeError(
+                "Episode is already complete. Call reset()."
+            )
 
         self._validate_city(next_city)
 
-        if next_city in self.visited:
+        if next_city in self.tour:
             raise ValueError(
                 f"City {next_city} has already been visited."
             )
 
-        self.total_distance += self.instance.distance_matrix[
-            self.current_city, next_city
-        ]
+        # First city establishes the starting point.
+        if self.current_city is None:
+            self.tour.append(next_city)
+            self.current_city = next_city
 
-        self.current_city = next_city
-        self.visited.append(next_city)
+        else:
+            self.total_distance += self.instance.distance(
+                self.current_city,
+                next_city,
+            )
 
-        if len(self.visited) == self.n_cities:
-            start_city = self.visited[0]
+            self.tour.append(next_city)
+            self.current_city = next_city
 
-            self.total_distance += self.instance.distance_matrix[
-                self.current_city, start_city
-            ]
+        # Automatically close a complete tour.
+        if len(self.tour) == self.instance.num_cities:
+            self.close_tour()
 
-            self.done = True
+        return self.state()
 
-        return self.get_state()
+    def close_tour(self) -> dict[str, Any]:
+        """Return to the starting city and complete the tour."""
 
-    def get_state(self) -> dict:
+        if not self.tour:
+            raise ValueError("Cannot close an empty tour.")
+
+        if self.done:
+            return self.state()
+
+        if len(self.tour) > 1:
+            start_city = self.tour[0]
+            self.total_distance += self.instance.distance(
+                self.current_city,
+                start_city,
+            )
+
+        self.done = True
+
+        return self.state()
+
+    def state(self) -> dict[str, Any]:
         """Return the current simulator state."""
 
         return {
+            "tour": list(self.tour),
             "current_city": self.current_city,
-            "visited": self.visited.copy(),
-            "unvisited": [
-                city
-                for city in range(self.n_cities)
-                if city not in self.visited
-            ],
             "total_distance": self.total_distance,
             "done": self.done,
+            "visited": list(self.tour),
         }
 
-    def get_tour(self) -> list[int]:
-        """
-        Return the completed closed tour.
-
-        Raises
-        ------
-        RuntimeError
-            If the tour has not yet been completed.
-        """
-
-        if not self.done:
-            raise RuntimeError("Tour is not complete.")
-
-        return self.visited + [self.visited[0]]
-
-    def get_tour_length(self) -> float:
-        """Return the length of the completed tour."""
-
-        if not self.done:
-            raise RuntimeError("Tour is not complete.")
-
-        return self.total_distance
-
     def _validate_city(self, city: int) -> None:
-        """Validate a city index."""
+        if not isinstance(city, int):
+            raise TypeError("City index must be an integer.")
 
-        if not isinstance(city, (int, np.integer)):
-            raise TypeError("city must be an integer")
-
-        if not 0 <= city < self.n_cities:
-            raise ValueError(
-                f"city must be between 0 and {self.n_cities - 1}"
+        if city < 0 or city >= self.instance.num_cities:
+            raise IndexError(
+                f"City index {city} is out of range for "
+                f"{self.instance.num_cities} cities."
             )
