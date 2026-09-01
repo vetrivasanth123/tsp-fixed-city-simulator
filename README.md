@@ -2,7 +2,7 @@
 
 A lightweight simulator for the **Traveling Salesman Problem (TSP)** with a fixed set of cities.
 
-This project provides a clean foundation for studying sequential decision-making on a deterministic TSP instance. The initial implementation uses a small fixed-city example (e.g., 5 cities) while keeping the simulator architecture flexible enough to support larger and parameterized TSP instances in later stages.
+This project provides a clean foundation for studying sequential decision-making on a deterministic TSP instance. The initial implementation uses a small fixed-city example (e.g., 5 cities) while keeping the simulator architecture flexible enough to support different cost models, larger instances, and parameterized TSP problems in later stages.
 
 ## Project Scope
 
@@ -10,12 +10,14 @@ The project is developed incrementally:
 
 ### Phase 1 — Fixed-City TSP Simulator
 
-* Represent a fixed set of cities and their pairwise distances.
+* Represent a fixed set of cities and their pairwise distances/costs.
+* Support Euclidean cost and custom cost matrices.
 * Maintain the current tour state.
 * Apply city-selection actions.
 * Track visited and unvisited cities.
-* Calculate travel distance and tour completion.
-* Provide basic route visualization.
+* Calculate and accumulate tour cost.
+* Save and replay simulation trajectories.
+* Provide static and animated route visualization.
 * Validate simulator behavior with unit tests.
 
 ### Phase 2 — Gym/Gymnasium Environment
@@ -40,39 +42,83 @@ It does **not** attempt to reproduce a general-purpose physics simulator or the 
 
 The architecture is designed around:
 
-* deterministic TSP instances,
+* fixed TSP instances,
+* configurable edge costs,
 * explicit simulator state,
 * simple action execution,
-* reproducible experiments,
+* reproducible trajectories,
 * testable components,
 * minimal dependencies,
 * and future extensibility.
 
 ## Initial Problem
 
-For a set of \(N\) cities, the simulator maintains a tour beginning from a designated starting city.
+For a set of \(N\) cities, the simulator maintains a tour beginning from a randomly selected starting city.
 
 At each step, an action selects an unvisited city. The simulator:
 
 1. validates the action,
 2. moves to the selected city,
 3. updates the visited-city state,
-4. accumulates the travel distance,
+4. accumulates the corresponding edge cost,
 5. determines whether the tour is complete.
 
-When all cities have been visited, the simulator can close the tour by returning to the starting city.
+When all cities have been visited, the simulator closes the tour by returning to the starting city.
 
-The objective is to minimize the total tour distance.
+The objective is to minimize the **total tour cost**.
 
-## Initial Instance
+## Cost Model
 
-The first example uses a fixed **5-city TSP instance** stored in:
+The simulator separates **geometric distance** from the **optimization cost**.
+
+By default, the edge cost is the Euclidean distance between cities. A custom cost matrix can also be supplied for the same fixed coordinates.
+
+```text
+City Coordinates
+       │
+       ├──→ Euclidean Distance
+       │
+       └──→ Custom Cost Matrix
+                    │
+                    ▼
+              instance.cost()
+                    │
+                    ▼
+             TSP Simulator
+```
+
+The simulator uses:
+
+```python
+instance.cost(city_a, city_b)
+```
+
+as the main interface for edge costs.
+
+The Euclidean distance matrix is retained separately as geometric information.
+
+## Initial Instances
+
+The repository currently contains two 5-city instances:
 
 ```text
 instances/five_cities.json
+instances/five_cities_custom_cost.json
 ```
 
-The instance format is intentionally separated from the simulator so that additional TSP instances can later be introduced without changing the simulator implementation.
+`five_cities.json` uses Euclidean distance as the default cost.
+
+`five_cities_custom_cost.json` uses an explicitly defined cost matrix while retaining the same city coordinates.
+
+Example custom cost matrix:
+
+```text
+[[ 0. 10. 20. 15.  8.]
+ [10.  0. 12. 18. 14.]
+ [20. 12.  0.  9. 16.]
+ [15. 18.  9.  0. 11.]
+ [ 8. 14. 16. 11.  0.]]
+```
 
 ## Repository Structure
 
@@ -83,6 +129,7 @@ tsp-fixed-city-simulator/
 ├── LICENSE
 ├── THIRD_PARTY_LICENSES.md
 ├── requirements.txt
+├── .simulation.json
 │
 ├── tsp/
 │   ├── __init__.py
@@ -92,17 +139,19 @@ tsp-fixed-city-simulator/
 │   └── visualization.py
 │
 ├── instances/
-│   └── five_cities.json
+│   ├── five_cities.json
+│   └── five_cities_custom_cost.json
 │
 ├── examples/
-│   └── run_fixed_city.py
+│   ├── run_fixed_city.py
+│   └── run_visualize.py
 │
 └── tests/
     ├── test_instance.py
     └── test_simulator.py
 ```
 
-## Planned Components
+## Components
 
 ### `tsp/instance.py`
 
@@ -110,13 +159,13 @@ Defines the TSP problem instance.
 
 Responsibilities include:
 
-* city representation,
 * city coordinates,
-* distance matrix,
-* starting city,
-* loading and validating instance data.
+* Euclidean distance matrix,
+* configurable cost matrix,
+* cost/distance access,
+* instance loading and validation.
 
-The instance is kept separate from the simulator so that the same simulator can later operate on different city configurations.
+The starting city is selected and maintained by the simulator, not by the instance.
 
 ### `tsp/simulator.py`
 
@@ -124,58 +173,135 @@ Contains the core fixed-city TSP simulator.
 
 Responsibilities include:
 
-* simulator initialization,
+* simulator initialization and reset,
 * current-city tracking,
 * visited-city tracking,
 * action execution,
-* distance accumulation,
+* cost accumulation,
 * tour completion,
-* tour retrieval.
+* state retrieval.
 
-This file contains the core task logic and is the main component that will later support a Gym/Gymnasium wrapper.
+This is the main component that will later support a Gym/Gymnasium wrapper.
 
 ### `tsp/utils.py`
 
-Contains small general-purpose utilities that do not belong to the simulator itself.
+Contains general-purpose utilities such as:
 
-Examples may include:
-
-* distance-matrix construction,
-* validation helpers,
-* reproducibility utilities.
+* tour validation,
+* tour closing,
+* tour-cost calculation,
+* Euclidean distance-matrix construction.
 
 ### `tsp/visualization.py`
 
 Provides lightweight visualization of:
 
 * city locations,
-* visited route,
-* final tour,
-* total distance.
+* constructed routes,
+* final tours,
+* edge costs,
+* total cost.
 
-The initial implementation is intended for simple Matplotlib-based use, including Google Colab.
+It also saves simulation trajectories and replays them through an animated visualization.
 
-### `instances/five_cities.json`
+### `instances/`
 
-Stores the initial fixed 5-city problem instance.
-
-Keeping the data outside the Python implementation makes it straightforward to introduce additional instances later.
+Stores TSP problem data separately from the simulator implementation so that additional instances and cost models can be introduced without changing the simulator.
 
 ### `examples/run_fixed_city.py`
 
-A minimal executable example showing how to:
+Demonstrates:
 
-1. load the instance,
-2. create the simulator,
-3. execute a tour,
-4. report the result,
-5. visualize the route.
+1. selecting a cost model,
+2. loading the corresponding instance,
+3. creating the simulator,
+4. executing a complete tour,
+5. reporting the result,
+6. saving the trajectory.
+
+### `examples/run_visualize.py`
+
+Loads the saved simulation, restores the corresponding TSP instance and cost model, and replays the exact action sequence through the animated visualization.
 
 ### `tests/`
 
 Contains unit tests for the instance and simulator.
 
-The tests should verify the simulator's mathematical and state-transition behavior before RL is introduced.
+The current test suite verifies instance loading, distance/cost behavior, state transitions, action validation, custom costs, and tour completion.
+
+## Simulation State
+
+The simulator maintains:
+
+```text
+start_city
+current_city
+tour
+visited
+available_actions
+total_cost
+done
+```
+
+The action space is currently represented simply as the set of unvisited city indices.
+
+For example:
+
+```text
+Current city: 3
+Available actions: [0, 1, 2, 4]
+```
+
+Selecting city `0` moves the simulator from city `3` to city `0` and adds:
+
+```python
+instance.cost(3, 0)
+```
+
+to the accumulated cost.
+
+## Trajectory Persistence
+
+Completed simulations can be saved as JSON.
+
+Example:
+
+```json
+{
+  "instance": "five_cities_custom_cost",
+  "start_city": 3,
+  "actions": [0, 2, 4, 1],
+  "tour": [3, 0, 2, 4, 1, 3],
+  "total_cost": 83.0
+}
+```
+
+The saved instance name and action sequence allow the visualization to reproduce the same trajectory using the same cost model.
+
+## Validation
+
+The current implementation has been validated through:
+
+* **25 passing unit tests**
+* Euclidean-cost verification
+* custom-cost verification
+* invalid-action checks
+* duplicate-city checks
+* complete-tour checks
+* trajectory persistence
+* end-to-end custom-cost simulation and replay
+
+A verified custom-cost run produced:
+
+```text
+Tour:
+[3, 0, 2, 4, 1, 3]
+
+Total cost:
+83.0
+```
+
+The visualization used the same custom cost matrix and reproduced the saved trajectory with the corresponding edge-cost labels.
 
 ## Development Direction
 
@@ -199,7 +325,9 @@ This separation allows the fixed-city simulator to remain simple while providing
 
 The repository is an independent TSP implementation.
 
-The project takes architectural inspiration from the separation of simulation logic and environment-facing interfaces used in EvoGym. It does **not** include EvoGym's physics simulator, robot morphology system, actuator mechanics, collision handling, mass-spring dynamics, or robot-specific code.
+The simulator architecture is **conceptually inspired by the environment-oriented design philosophy of EvoGym**, particularly the separation of simulation/environment dynamics from learning algorithms.
+
+No EvoGym source code, soft-body physics, robot morphology, actuator mechanics, mass-spring dynamics, robot tasks, or optimization implementations are used in this project.
 
 Any third-party code that is actually incorporated will be identified in:
 
