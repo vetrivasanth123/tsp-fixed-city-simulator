@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
-
 import random
 
 from .instance import TSPInstance
 
 
 class TSPSimulator:
-    """Simulator for constructing TSP tours on a fixed set of cities."""
+    """Simulator for constructing TSP tours on fixed cities."""
 
     def __init__(
         self,
@@ -20,36 +19,21 @@ class TSPSimulator:
         self.reset()
 
     def reset(self) -> dict[str, Any]:
-        """
-        Reset the simulator and randomly select a starting city.
-
-        Returns
-        -------
-        dict
-            Initial simulator state.
-        """
+        """Reset and randomly select the starting city."""
 
         self.start_city = self._rng.randrange(
             self.instance.num_cities
         )
 
-        self.tour: list[int] = [self.start_city]
-
-        self.current_city: int = self.start_city
-
-        self.total_distance: float = 0.0
-
-        self.done: bool = False
+        self.tour = [self.start_city]
+        self.current_city = self.start_city
+        self.total_distance = 0.0
+        self.done = False
 
         return self.state()
 
     def available_actions(self) -> list[int]:
-        """
-        Return the cities that can be selected next.
-
-        The starting city and all previously visited cities
-        are excluded.
-        """
+        """Return all unvisited cities."""
 
         if self.done:
             return []
@@ -63,19 +47,7 @@ class TSPSimulator:
         ]
 
     def step(self, next_city: int) -> dict[str, Any]:
-        """
-        Move from the current city to an unvisited city.
-
-        Parameters
-        ----------
-        next_city:
-            City selected as the next action.
-
-        Returns
-        -------
-        dict
-            Updated simulator state.
-        """
+        """Move to an unvisited city."""
 
         if self.done:
             raise RuntimeError(
@@ -95,29 +67,23 @@ class TSPSimulator:
         )
 
         self.tour.append(next_city)
-
         self.current_city = next_city
 
         return self.state()
 
     def close_tour(self) -> dict[str, Any]:
-        """
-        Return to the starting city and complete the tour.
-        """
+        """Return to the starting city and finish the tour."""
 
         if not self.tour:
-            raise ValueError(
-                "Cannot close an empty tour."
-            )
+            raise ValueError("Cannot close an empty tour.")
 
         if self.done:
             return self.state()
 
-        if len(self.tour) > 1:
-            self.total_distance += self.instance.distance(
-                self.current_city,
-                self.start_city,
-            )
+        self.total_distance += self.instance.distance(
+            self.current_city,
+            self.start_city,
+        )
 
         self.done = True
 
