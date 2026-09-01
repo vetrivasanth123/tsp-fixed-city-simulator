@@ -56,7 +56,7 @@ def main():
     print("\nFinal result")
     print("------------")
     print("Start city:", simulator.start_city)
-    print("Tour:", simulator.tour)
+    print("Tour:", simulator.tour + [simulator.start_city])
     print("Closed:", simulator.done)
     print("Total distance:", simulator.total_distance)
 
