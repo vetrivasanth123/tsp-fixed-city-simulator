@@ -1,10 +1,31 @@
 {
-  "name": "five_cities",
-  "coordinates": [
-    [0.0, 0.0],
-    [2.0, 1.0],
-    [4.0, 0.0],
-    [3.0, 3.0],
-    [0.5, 3.0]
+  "name": "five_city_example",
+  "description": "Fixed five-city Euclidean TSP instance",
+  "cities": [
+    {
+      "id": 0,
+      "name": "A",
+      "coordinates": [0.0, 0.0]
+    },
+    {
+      "id": 1,
+      "name": "B",
+      "coordinates": [3.0, 0.0]
+    },
+    {
+      "id": 2,
+      "name": "C",
+      "coordinates": [3.0, 4.0]
+    },
+    {
+      "id": 3,
+      "name": "D",
+      "coordinates": [0.0, 4.0]
+    },
+    {
+      "id": 4,
+      "name": "E",
+      "coordinates": [1.5, 2.0]
+    }
   ]
 }
