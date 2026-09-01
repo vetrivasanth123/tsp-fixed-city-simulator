@@ -4,11 +4,24 @@ from typing import Any
 
 import random
 
-from tsp.instance import TSPInstance
-from tsp.simulator import TSPSimulator
+from .instance import TSPInstance
+
 
 class TSPSimulator:
-    """Simulator for constructing TSP tours on a fixed set of cities."""
+    """
+    Simulator for constructing TSP tours on a fixed set of cities.
+
+    The simulator:
+    - uses a fixed set of city coordinates,
+    - randomly selects a starting city,
+    - exposes valid next-city actions,
+    - accepts one action at a time,
+    - tracks the partial tour and distance,
+    - explicitly closes the tour,
+    - records the trajectory for visualization and later RL use.
+
+    No optimization or RL logic is included here.
+    """
 
     def __init__(
         self,
@@ -17,40 +30,69 @@ class TSPSimulator:
     ) -> None:
         self.instance = instance
         self._rng = random.Random(seed)
+        self._seed = seed
+
         self.reset()
 
     def reset(
         self,
         seed: int | None = None,
     ) -> dict[str, Any]:
-        """Reset the simulator and randomly select a starting city."""
+        """
+        Reset the simulator and randomly select a starting city.
+
+        Parameters
+        ----------
+        seed:
+            Optional seed. If supplied, the simulator's random
+            generator is reseeded before selecting the start city.
+
+        Returns
+        -------
+        dict
+            Initial simulator state.
+        """
 
         if seed is not None:
             self._rng.seed(seed)
+            self._seed = seed
 
         self.start_city = self._rng.randrange(
             self.instance.num_cities
         )
 
         self.tour: list[int] = [self.start_city]
+
         self.current_city: int = self.start_city
+
         self.total_distance: float = 0.0
+
         self.done: bool = False
 
-        # Complete record of what actually happened.
+        # Record the complete trajectory.
+        #
+        # This is useful for visualization because the visualizer
+        # can reproduce exactly what the simulator did.
         self.history: list[dict[str, Any]] = []
 
-        self._record(
-            event="start",
+        self._record_history(
             action=None,
-            previous_city=None,
-            distance_added=0.0,
+            event="start",
         )
 
         return self.state()
 
     def available_actions(self) -> list[int]:
-        """Return all currently valid next-city actions."""
+        """
+        Return the cities that can currently be selected.
+
+        Previously visited cities are excluded.
+
+        Returns
+        -------
+        list[int]
+            Valid next-city actions.
+        """
 
         if self.done:
             return []
@@ -63,8 +105,34 @@ class TSPSimulator:
             if city not in visited
         ]
 
-    def step(self, next_city: int) -> dict[str, Any]:
-        """Move from the current city to an unvisited city."""
+    def step(
+        self,
+        next_city: int,
+    ) -> dict[str, Any]:
+        """
+        Select the next city.
+
+        Parameters
+        ----------
+        next_city:
+            City index selected as the next action.
+
+        Returns
+        -------
+        dict
+            Updated simulator state.
+
+        Raises
+        ------
+        RuntimeError
+            If the episode is already complete.
+
+        ValueError
+            If the city was already visited.
+
+        IndexError
+            If the city index is invalid.
+        """
 
         if self.done:
             raise RuntimeError(
@@ -86,12 +154,14 @@ class TSPSimulator:
         )
 
         self.total_distance += distance_added
+
         self.tour.append(next_city)
+
         self.current_city = next_city
 
-        self._record(
-            event="step",
+        self._record_history(
             action=next_city,
+            event="step",
             previous_city=previous_city,
             distance_added=distance_added,
         )
@@ -99,7 +169,16 @@ class TSPSimulator:
         return self.state()
 
     def close_tour(self) -> dict[str, Any]:
-        """Return to the starting city and complete the tour."""
+        """
+        Return to the starting city and complete the tour.
+
+        The closing edge is recorded in the trajectory.
+
+        Returns
+        -------
+        dict
+            Final simulator state.
+        """
 
         if not self.tour:
             raise ValueError(
@@ -123,9 +202,9 @@ class TSPSimulator:
 
         self.done = True
 
-        self._record(
-            event="close",
+        self._record_history(
             action=self.start_city,
+            event="close",
             previous_city=previous_city,
             distance_added=distance_added,
         )
@@ -133,7 +212,12 @@ class TSPSimulator:
         return self.state()
 
     def state(self) -> dict[str, Any]:
-        """Return the current simulator state."""
+        """
+        Return the current simulator state.
+
+        This dictionary is intentionally suitable for a future
+        RL agent interface.
+        """
 
         return {
             "tour": list(self.tour),
@@ -146,21 +230,28 @@ class TSPSimulator:
         }
 
     def trajectory(self) -> list[dict[str, Any]]:
-        """Return the recorded simulator trajectory."""
+        """
+        Return a copy of the recorded simulator trajectory.
+
+        Each entry contains the state transition information needed
+        to reproduce the simulation visually.
+        """
 
         return [
             dict(record)
             for record in self.history
         ]
 
-    def _record(
+    def _record_history(
         self,
-        event: str,
         action: int | None,
-        previous_city: int | None,
-        distance_added: float,
+        event: str,
+        previous_city: int | None = None,
+        distance_added: float = 0.0,
     ) -> None:
-        """Record one simulator event."""
+        """
+        Record one simulator event.
+        """
 
         self.history.append(
             {
@@ -177,7 +268,10 @@ class TSPSimulator:
             }
         )
 
-    def _validate_city(self, city: int) -> None:
+    def _validate_city(
+        self,
+        city: int,
+    ) -> None:
         """Validate a city index."""
 
         if not isinstance(city, int):
