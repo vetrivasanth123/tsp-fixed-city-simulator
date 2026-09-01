@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 import random
-from tsp.instance import TSPInstance
 
+from tsp.instance import TSPInstance
+from tsp.simulator import TSPSimulator
 
 class TSPSimulator:
     """Simulator for constructing TSP tours on a fixed set of cities."""
