@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from typing import Any
+
 import random
 
 from .instance import TSPInstance
 
 
 class TSPSimulator:
-    """Simulator for constructing tours on a fixed set of TSP cities."""
+    """Simulator for constructing TSP tours on a fixed set of cities."""
 
     def __init__(
         self,
@@ -31,12 +32,13 @@ class TSPSimulator:
             self.instance.num_cities
         )
 
-        self.tour = [self.start_city]
-        self.current_city = self.start_city
-        self.total_distance = 0.0
-        self.done = False
+        self.tour: list[int] = [self.start_city]
+        self.current_city: int = self.start_city
+        self.total_distance: float = 0.0
+        self.done: bool = False
 
-        self._history = []
+        # Complete record of what actually happened.
+        self.history: list[dict[str, Any]] = []
 
         self._record(
             event="start",
@@ -48,7 +50,7 @@ class TSPSimulator:
         return self.state()
 
     def available_actions(self) -> list[int]:
-        """Return all unvisited cities that can be selected."""
+        """Return all currently valid next-city actions."""
 
         if self.done:
             return []
@@ -109,12 +111,16 @@ class TSPSimulator:
 
         previous_city = self.current_city
 
-        distance_added = self.instance.distance(
-            previous_city,
-            self.start_city,
-        )
+        distance_added = 0.0
 
-        self.total_distance += distance_added
+        if len(self.tour) > 1:
+            distance_added = self.instance.distance(
+                previous_city,
+                self.start_city,
+            )
+
+            self.total_distance += distance_added
+
         self.done = True
 
         self._record(
@@ -140,11 +146,11 @@ class TSPSimulator:
         }
 
     def trajectory(self) -> list[dict[str, Any]]:
-        """Return the complete trajectory for visualization."""
+        """Return the recorded simulator trajectory."""
 
         return [
             dict(record)
-            for record in self._history
+            for record in self.history
         ]
 
     def _record(
@@ -154,18 +160,20 @@ class TSPSimulator:
         previous_city: int | None,
         distance_added: float,
     ) -> None:
-        """Record one simulator transition."""
+        """Record one simulator event."""
 
-        self._history.append(
+        self.history.append(
             {
                 "event": event,
                 "action": action,
                 "previous_city": previous_city,
                 "current_city": self.current_city,
                 "tour": list(self.tour),
+                "visited": list(self.tour),
                 "available_actions": self.available_actions(),
                 "total_distance": self.total_distance,
                 "distance_added": distance_added,
+                "done": self.done,
             }
         )
 
