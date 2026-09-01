@@ -1,3 +1,4 @@
+
 from pathlib import Path
 
 import pytest
@@ -67,6 +68,20 @@ def test_step_adds_city(simulator):
 
     assert simulator.total_cost == pytest.approx(expected)
     assert simulator.total_distance == pytest.approx(expected)
+
+
+def test_cost_updates_after_step(simulator):
+    first_city = simulator.start_city
+    next_city = simulator.available_actions()[0]
+
+    simulator.step(next_city)
+
+    expected = simulator.instance.cost(
+        first_city,
+        next_city,
+    )
+
+    assert simulator.total_cost == pytest.approx(expected)
 
 
 def test_multiple_steps_build_tour(simulator):
@@ -166,3 +181,4 @@ def test_state_contains_cost(simulator):
         state["available_actions"]
         == simulator.available_actions()
     )
+
