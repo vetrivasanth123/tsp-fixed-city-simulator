@@ -1,153 +1,122 @@
-"""
-Visualization utilities for the fixed-city TSP simulator.
-
-This module contains lightweight Matplotlib-based plotting functions.
-It does not contain simulation logic, optimization algorithms, or RL code.
-"""
-
 from __future__ import annotations
 
-from typing import Iterable, Optional, Sequence
+from typing import Optional
 
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import numpy as np
 
 from .instance import TSPInstance
-from .utils import tour_length
 
 
-def plot_cities(
+def animate_simulation(
     instance: TSPInstance,
-    ax: Optional[plt.Axes] = None,
-    show_labels: bool = True,
-    title: str = "TSP City Locations",
-) -> plt.Axes:
+    actions: list[int],
+    start_city: int,
+    interval: int = 1000,
+):
+    """Animate the exact sequence of simulator actions."""
 
-    if ax is None:
-        _, ax = plt.subplots()
+    coordinates = np.asarray(instance.coordinates, dtype=float)
 
-    coordinates = np.asarray(
-        instance.coordinates,
-        dtype=float,
-    )
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     ax.scatter(
         coordinates[:, 0],
         coordinates[:, 1],
-        s=80,
+        s=100,
         zorder=3,
     )
 
-    if show_labels:
-        for city_index, (x, y) in enumerate(coordinates):
-            ax.annotate(
-                str(city_index),
-                (x, y),
-                xytext=(6, 6),
-                textcoords="offset points",
-            )
+    for city, (x, y) in enumerate(coordinates):
+        ax.annotate(
+            str(city),
+            (x, y),
+            xytext=(7, 7),
+            textcoords="offset points",
+        )
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
-    ax.set_title(title)
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True, alpha=0.3)
 
-    return ax
-
-
-def plot_tour(
-    instance: TSPInstance,
-    tour: Sequence[int],
-    ax: Optional[plt.Axes] = None,
-    show_labels: bool = True,
-    show_distance: bool = True,
-    close_tour: bool = True,
-    title: str = "TSP Tour",
-) -> plt.Axes:
-
-    if ax is None:
-        _, ax = plt.subplots()
-
-    tour = list(tour)
-
-    _validate_tour(instance, tour)
-
-    coordinates = np.asarray(
-        instance.coordinates,
-        dtype=float,
+    # Starting city
+    ax.scatter(
+        coordinates[start_city, 0],
+        coordinates[start_city, 1],
+        s=220,
+        facecolors="none",
+        linewidths=3,
+        zorder=5,
     )
 
-    plot_cities(
-        instance,
-        ax=ax,
-        show_labels=show_labels,
-        title=title,
-    )
+    line, = ax.plot([], [], linewidth=2.5, zorder=2)
 
-    route = tour.copy()
-
-    if close_tour:
-        route.append(tour[0])
-
-    route_coordinates = coordinates[route]
-
-    ax.plot(
-        route_coordinates[:, 0],
-        route_coordinates[:, 1],
+    current_marker, = ax.plot(
+        [],
+        [],
         marker="o",
-        linewidth=1.5,
-        zorder=2,
+        markersize=14,
+        linestyle="None",
+        zorder=6,
     )
 
-    if show_distance:
-        distance = tour_length(
-            tour,
-            instance.distance_matrix,
-        )
-
-        ax.set_title(
-            f"{title} — Distance: {distance:.4f}"
-        )
-
-    return ax
-
-
-def plot_tour_from_simulator(
-    simulator,
-    ax: Optional[plt.Axes] = None,
-    show_labels: bool = True,
-    show_distance: bool = True,
-    title: str = "TSP Tour",
-) -> plt.Axes:
-
-    return plot_tour(
-        instance=simulator.instance,
-        tour=simulator.tour,
-        ax=ax,
-        show_labels=show_labels,
-        show_distance=show_distance,
-        close_tour=simulator.done,
-        title=title,
+    text = ax.text(
+        0.02,
+        0.95,
+        "",
+        transform=ax.transAxes,
+        verticalalignment="top",
     )
 
+    route = [start_city]
 
-def _validate_tour(
-    instance: TSPInstance,
-    tour: Iterable[int],
-) -> None:
+    def update(frame):
+        if frame > 0:
+            route.append(actions[frame - 1])
 
-    tour = list(tour)
+        # Close the tour on the final frame.
+        plotted_route = route.copy()
 
-    num_cities = instance.num_cities
+        if frame == len(actions):
+            plotted_route.append(start_city)
 
-    if len(tour) != num_cities:
-        raise ValueError(
-            f"Tour must contain exactly {num_cities} cities; "
-            f"received {len(tour)}."
+        xy = coordinates[plotted_route]
+
+        line.set_data(xy[:, 0], xy[:, 1])
+
+        current = route[-1]
+        current_marker.set_data(
+            [coordinates[current, 0]],
+            [coordinates[current, 1]],
         )
 
-    if sorted(tour) != list(range(num_cities)):
-        raise ValueError(
-            "Tour must contain every city index exactly once."
-        )
+        if frame == 0:
+            text.set_text(
+                f"Start city: {start_city}\n"
+                f"Next actions: {actions}"
+            )
+        elif frame == len(actions):
+            text.set_text(
+                f"Tour complete\n"
+                f"Tour: {route + [start_city]}"
+            )
+        else:
+            text.set_text(
+                f"Current city: {current}\n"
+                f"Selected action: {actions[frame - 1]}"
+            )
+
+        return line, current_marker, text
+
+    animation = FuncAnimation(
+        fig,
+        update,
+        frames=len(actions) + 1,
+        interval=interval,
+        repeat=False,
+        blit=False,
+    )
+
+    return fig, animation
