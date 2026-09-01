@@ -68,6 +68,7 @@ def load_saved_simulation(project_root):
 
 def animate_simulation(instance, actions, start_city, interval=900):
     xy = np.asarray(instance.coordinates, dtype=float)
+    route = [start_city] + list(actions) + [start_city]
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
@@ -93,42 +94,37 @@ def animate_simulation(instance, actions, start_city, interval=900):
     current, = ax.plot([], [], "o", markersize=14, zorder=6)
     status = ax.text(0.02, 0.97, "", transform=ax.transAxes, va="top")
 
-    cost_labels = []
-    route = [start_city]
+    labels = []
 
-    def add_cost_label(a, b):
+    for i in range(len(route) - 1):
+        a, b = route[i], route[i + 1]
         x1, y1 = xy[a]
         x2, y2 = xy[b]
 
-        label = ax.text(
-            (x1 + x2) / 2,
-            (y1 + y2) / 2,
-            f"{instance.cost(a, b):.2f}",
-            ha="center",
-            va="center",
-            fontsize=9,
+        labels.append(
+            ax.text(
+                (x1 + x2) / 2,
+                (y1 + y2) / 2,
+                f"{instance.cost(a, b):.2f}",
+                ha="center",
+                va="center",
+                fontsize=9,
+                visible=False,
+                zorder=7,
+            )
         )
-        cost_labels.append(label)
 
     def update(frame):
-        if frame > 0:
-            previous = route[-1]
-            city = actions[frame - 1]
-            route.append(city)
-            add_cost_label(previous, city)
+        current_route = route[:frame + 1]
+        points = xy[current_route]
 
-        plotted = route.copy()
-
-        if frame == len(actions):
-            if len(route) > 1:
-                add_cost_label(route[-1], start_city)
-            plotted.append(start_city)
-
-        points = xy[plotted]
         line.set_data(points[:, 0], points[:, 1])
 
-        city = route[-1]
+        city = current_route[-1]
         current.set_data([xy[city, 0]], [xy[city, 1]])
+
+        for i, label in enumerate(labels):
+            label.set_visible(i < frame)
 
         if frame == 0:
             status.set_text(f"Start city: {start_city}")
@@ -139,7 +135,7 @@ def animate_simulation(instance, actions, start_city, interval=900):
         else:
             status.set_text("Tour complete")
 
-        return line, current, status, *cost_labels
+        return line, current, status, *labels
 
     animation = FuncAnimation(
         fig,
