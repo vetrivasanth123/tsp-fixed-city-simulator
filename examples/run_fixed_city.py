@@ -1,27 +1,35 @@
 """
-Run the fixed-city TSP simulator and immediately visualize
-the exact simulator trajectory.
+Demonstration of the fixed-city TSP simulator.
 
-No RL or optimization is used yet.
+The simulator runs first and records every action.
+
+The recorded trajectory is then rendered immediately as an
+animation showing exactly what happened.
+
+No optimization or RL agent is used yet.
 """
 
 from pathlib import Path
 import sys
+import random
 
 from IPython.display import HTML, display
 
+
 # --------------------------------------------------
-# Project root
+# Locate project root
 # --------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = (
+    Path(__file__).resolve().parents[1]
+)
 
 if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
 
-# --------------------------------------------------
-# Imports
-# --------------------------------------------------
 
 from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
@@ -31,7 +39,7 @@ from tsp.visualization import animate_simulation
 def main():
 
     # --------------------------------------------------
-    # 1. Load fixed instance
+    # 1. Load fixed-city instance
     # --------------------------------------------------
 
     instance_path = (
@@ -64,16 +72,14 @@ def main():
 
     # --------------------------------------------------
     # 2. Create simulator
+    # --------------------------------------------------
     #
-    # No seed -> different starting city can be selected
-    # on different executions.
+    # No seed here.
+    #
+    # Therefore the starting city is random every run.
     # --------------------------------------------------
 
     simulator = TSPSimulator(instance)
-
-    # --------------------------------------------------
-    # 3. Initial state
-    # --------------------------------------------------
 
     state = simulator.state()
 
@@ -101,14 +107,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 4. Execute simulator
-    #
-    # This is the temporary action policy.
-    #
-    # Later:
-    #
-    #     selected_action = agent.select_action(state)
-    #
+    # 3. Run the simulator
     # --------------------------------------------------
 
     print("\nAction sequence")
@@ -118,32 +117,53 @@ def main():
 
         state = simulator.state()
 
-        actions = state["available_actions"]
+        available_actions = (
+            state["available_actions"]
+        )
 
-        if not actions:
+        if not available_actions:
             break
 
-        current_city = state["current_city"]
+        current_city = (
+            state["current_city"]
+        )
 
-        # Temporary deterministic policy.
-        selected_action = actions[0]
+        # --------------------------------------------------
+        # TEMPORARY ACTION SELECTION
+        #
+        # This is NOT RL.
+        #
+        # It simply chooses randomly from the valid cities.
+        #
+        # Later this exact line becomes something like:
+        #
+        # selected_action = agent.select_action(state)
+        # --------------------------------------------------
+
+        selected_action = random.choice(
+            available_actions
+        )
 
         print(
             f"Current city: {current_city} | "
-            f"Available actions: {actions} | "
-            f"Selected action: {selected_action}"
+            f"Available actions: "
+            f"{available_actions} | "
+            f"Selected action: "
+            f"{selected_action}"
         )
 
-        simulator.step(selected_action)
+        simulator.step(
+            selected_action
+        )
 
     # --------------------------------------------------
-    # 5. Close tour
+    # 4. Close tour
     # --------------------------------------------------
 
     simulator.close_tour()
 
     # --------------------------------------------------
-    # 6. Final result
+    # 5. Final result
     # --------------------------------------------------
 
     print("\nFinal result")
@@ -170,10 +190,12 @@ def main():
     )
 
     # --------------------------------------------------
-    # 7. Animate EXACT trajectory
+    # 6. Animate THIS EXACT simulation
     # --------------------------------------------------
 
-    print("\nRendering simulation animation...")
+    print(
+        "\nRendering simulation animation..."
+    )
 
     animation = animate_simulation(
         simulator,
@@ -182,7 +204,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 8. Display immediately in Colab/Jupyter
+    # 7. Display immediately in Colab/Jupyter
     # --------------------------------------------------
 
     display(
