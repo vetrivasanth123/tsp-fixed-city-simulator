@@ -25,20 +25,19 @@ def main():
             "No simulation exists. Run run_fixed_city.py first."
         )
 
-    print("\nVisualizing saved simulation:")
+    print("Visualizing saved simulation:")
     print("Start city:", saved["start_city"])
     print("Actions:", saved["actions"])
     print("Tour:", saved["tour"])
     print("Distance:", saved["total_distance"])
 
-    fig, animation = animate_simulation(
+    _, animation = animate_simulation(
         instance,
         saved["actions"],
         saved["start_city"],
     )
 
-    display(HTML(animation.to_jshtml()))
-    print("\n✓ Simulation video displayed.")
+    display(HTML(animation.to_html5_video()))
 
 
 if __name__ == "__main__":
