@@ -4,7 +4,8 @@ from typing import Any
 
 import random
 
-from .instance import TSPInstance
+from tsp.instance import TSPInstance 
+from tsp.simulator import TSPSimulator
 
 
 class TSPSimulator:
