@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 import sys
 
 from IPython.display import HTML, display
@@ -9,50 +8,28 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from tsp.instance import TSPInstance
+from tsp.simulator import get_last_simulator
 from tsp.visualization import animate_simulation
 
 
-def main() -> None:
+def main():
 
-    instance_path = (
-        PROJECT_ROOT
-        / "instances"
-        / "five_cities.json"
-    )
+    simulator = get_last_simulator()
 
-    run_path = (
-        PROJECT_ROOT
-        / "outputs"
-        / "fixed_city_run.json"
-    )
-
-    if not run_path.exists():
-        raise FileNotFoundError(
-            "No recorded simulation found. "
-            "Run examples/run_fixed_city.py first."
+    if simulator is None:
+        raise RuntimeError(
+            "No simulation exists in memory. "
+            "Run run_fixed_city.py first."
         )
 
-    instance = TSPInstance.from_json(instance_path)
+    print("Visualizing the last simulation")
+    print("--------------------------------")
+    print("Start city:", simulator.start_city)
+    print("Tour:", simulator.tour)
+    print("Distance:", simulator.total_distance)
 
-    data = json.loads(
-        run_path.read_text()
-    )
-
-    start_city = data["start_city"]
-    actions = data["actions"]
-
-    print("Recorded simulation")
-    print("-------------------")
-    print("Start city:", start_city)
-    print("Actions:", actions)
-    print("Tour:", data["tour"])
-    print("Distance:", data["total_distance"])
-
-    fig, animation = animate_simulation(
-        instance=instance,
-        start_city=start_city,
-        actions=actions,
+    animation = animate_simulation(
+        simulator,
         interval=1000,
     )
 
