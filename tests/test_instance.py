@@ -41,7 +41,8 @@ def test_distance_matrix_properties():
 
     assert instance.distance_matrix.shape == (5, 5)
     np.testing.assert_allclose(
-        np.diag(instance.distance_matrix), 0.0
+        np.diag(instance.distance_matrix),
+        0.0,
     )
     np.testing.assert_allclose(
         instance.distance_matrix,
@@ -86,7 +87,8 @@ def test_default_cost_is_nonnegative_and_zero_diagonal():
 
     assert np.all(instance.cost_matrix >= 0.0)
     np.testing.assert_allclose(
-        np.diag(instance.cost_matrix), 0.0
+        np.diag(instance.cost_matrix),
+        0.0,
     )
 
 
