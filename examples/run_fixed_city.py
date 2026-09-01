@@ -1,25 +1,35 @@
-
 """
 Demonstration of the fixed-city TSP simulator.
 
-The simulator:
-1. Loads a fixed set of cities.
-2. Randomly selects the starting city.
-3. Exposes available cities as possible actions.
-4. Executes a simple action-selection policy.
-5. Completes the tour.
-6. Reports the final distance.
-7. Visualizes the resulting tour.
+The example:
 
-This is NOT an RL agent.
-The action-selection logic is deliberately simple so that
-the simulator interface can be verified independently before
-adding an RL agent.
+1. Automatically finds the project root.
+2. Automatically loads the fixed five-city instance.
+3. Creates the simulator with a random starting city.
+4. Displays the initial state and available actions.
+5. Selects valid actions until all cities are visited.
+6. Closes the tour.
+7. Reports the final distance.
+8. Visualizes the resulting tour.
+
+This is a simulator demonstration only.
+No optimization or RL agent is used yet.
 """
 
 from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
+
+# --------------------------------------------------
+# Automatically locate project root
+# --------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 
 from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
@@ -27,29 +37,46 @@ from tsp.visualization import plot_tour
 
 
 def main() -> None:
+
     # --------------------------------------------------
-    # 1. Locate and load the fixed five-city instance
+    # 1. Automatically locate the instance
     # --------------------------------------------------
 
-    project_root = Path(__file__).resolve().parents[1]
-    instance_path = project_root / "instances" / "five_cities.json"
+    instance_path = (
+        PROJECT_ROOT
+        / "instances"
+        / "five_cities.json"
+    )
+
+    if not instance_path.exists():
+        raise FileNotFoundError(
+            f"Could not find TSP instance:\n{instance_path}"
+        )
+
+    # --------------------------------------------------
+    # 2. Load fixed-city instance
+    # --------------------------------------------------
 
     instance = TSPInstance.from_json(instance_path)
 
-    print("TSP instance:", instance.name)
+    print("Project root:", PROJECT_ROOT)
+    print("Instance:", instance.name)
     print("Number of cities:", instance.num_cities)
 
     print("\nCoordinates:")
     print(instance.coordinates)
 
     # --------------------------------------------------
-    # 2. Create simulator
+    # 3. Create simulator
     # --------------------------------------------------
 
-    # The simulator randomly selects the starting city.
-    simulator = TSPSimulator(instance, seed=42)
+    simulator = TSPSimulator(instance)
 
-    state = simulator.reset()
+    # --------------------------------------------------
+    # 4. Initial state
+    # --------------------------------------------------
+
+    state = simulator.state()
 
     print("\nInitial state")
     print("-------------")
@@ -59,53 +86,55 @@ def main() -> None:
     print("Available actions:", state["available_actions"])
 
     # --------------------------------------------------
-    # 3. Construct a tour using available actions
+    # 5. Demonstrate sequential action selection
+    # --------------------------------------------------
+    #
+    # For now there is NO RL agent.
+    #
+    # We simply choose the first valid action to demonstrate
+    # how an agent will eventually interact with the simulator.
+    #
+    # Later this section will become:
+    #
+    #     action = agent.select_action(state)
+    #
     # --------------------------------------------------
 
     print("\nAction sequence")
-    print("--------------")
+    print("---------------")
 
     while not simulator.done:
 
-        available_actions = simulator.available_actions()
+        state = simulator.state()
 
-        # If every city has been visited, close the tour.
+        available_actions = state["available_actions"]
+
+        # If all cities have been visited, stop selecting cities.
         if not available_actions:
             break
 
-        # --------------------------------------------------
-        # Temporary demonstration policy
-        # --------------------------------------------------
-        # Select the first available city.
-        #
-        # IMPORTANT:
-        # This is where an RL agent can later be connected.
-        # For example:
-        #
-        # action = agent.select_action(state)
-        #
-        # For now we deliberately use a simple deterministic
-        # policy so the simulator can be tested independently.
-        # --------------------------------------------------
+        current_city = state["current_city"]
 
-        action = available_actions[0]
+        # Temporary deterministic action selection.
+        # This will later be replaced by an RL agent.
+        selected_action = available_actions[0]
 
         print(
-            f"Current city: {simulator.current_city} "
-            f"| Available actions: {available_actions} "
-            f"| Selected action: {action}"
+            f"Current city: {current_city} | "
+            f"Available actions: {available_actions} | "
+            f"Selected action: {selected_action}"
         )
 
-        state = simulator.step(action)
+        simulator.step(selected_action)
 
     # --------------------------------------------------
-    # 4. Close the tour
+    # 6. Close the tour
     # --------------------------------------------------
 
     simulator.close_tour()
 
     # --------------------------------------------------
-    # 5. Report final result
+    # 7. Final result
     # --------------------------------------------------
 
     print("\nFinal result")
@@ -116,7 +145,7 @@ def main() -> None:
     print("Total distance:", simulator.total_distance)
 
     # --------------------------------------------------
-    # 6. Visualize the final tour
+    # 8. Visualize
     # --------------------------------------------------
 
     plot_tour(
@@ -130,4 +159,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
