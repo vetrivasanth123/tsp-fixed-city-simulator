@@ -49,9 +49,10 @@ def save_simulation(simulator, project_root):
     path = Path(project_root) / ".simulation.json"
 
     data = {
+        "instance": simulator.instance.name,
         "start_city": simulator.start_city,
         "actions": simulator.tour[1:],
-        "tour": simulator.tour,
+        "tour": simulator.tour + [simulator.start_city],
         "total_cost": simulator.total_cost,
     }
 
@@ -69,6 +70,7 @@ def load_saved_simulation(project_root):
 
 def animate_simulation(instance, actions, start_city, interval=900):
     xy = np.asarray(instance.coordinates, dtype=float)
+
     fig, ax = plt.subplots(figsize=(8, 6))
 
     ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
@@ -100,6 +102,7 @@ def animate_simulation(instance, actions, start_city, interval=900):
     def add_cost_label(a, b):
         x1, y1 = xy[a]
         x2, y2 = xy[b]
+
         label = ax.text(
             (x1 + x2) / 2,
             (y1 + y2) / 2,
@@ -108,12 +111,14 @@ def animate_simulation(instance, actions, start_city, interval=900):
             va="center",
             fontsize=9,
         )
+
         cost_labels.append(label)
 
     def update(frame):
         if frame > 0:
             previous = route[-1]
             city = actions[frame - 1]
+
             route.append(city)
             add_cost_label(previous, city)
 
@@ -121,6 +126,7 @@ def animate_simulation(instance, actions, start_city, interval=900):
 
         if frame == len(actions):
             plotted.append(start_city)
+
             if len(route) > 1:
                 add_cost_label(route[-1], start_city)
 
@@ -134,7 +140,8 @@ def animate_simulation(instance, actions, start_city, interval=900):
             status.set_text(f"Start city: {start_city}")
         elif frame < len(actions):
             status.set_text(
-                f"Current city: {city}   Next action: {actions[frame]}"
+                f"Current city: {city}   "
+                f"Next action: {actions[frame]}"
             )
         else:
             status.set_text("Tour complete")
