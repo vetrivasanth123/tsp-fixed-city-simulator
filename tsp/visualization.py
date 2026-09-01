@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 
-from .utils import tour_length
+from .utils import tour_cost
 
 
 def plot_cities(instance, ax=None):
@@ -16,11 +16,18 @@ def plot_cities(instance, ax=None):
         _, ax = plt.subplots()
 
     xy = np.asarray(instance.coordinates, dtype=float)
-    ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
+
+    ax.scatter(
+        xy[:, 0],
+        xy[:, 1],
+        s=100,
+        zorder=3,
+    )
 
     for i, (x, y) in enumerate(xy):
         ax.annotate(
-            str(i), (x, y),
+            str(i),
+            (x, y),
             xytext=(7, 7),
             textcoords="offset points",
         )
@@ -37,18 +44,25 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
     tour = list(tour)
 
     if len(tour) != instance.num_cities:
-        raise ValueError("Tour must contain every city exactly once.")
+        raise ValueError(
+            "Tour must contain every city exactly once."
+        )
 
     ax = plot_cities(instance, ax)
 
     route = tour + [tour[0]]
     xy = np.asarray(instance.coordinates)[route]
 
-    ax.plot(xy[:, 0], xy[:, 1], marker="o", linewidth=2)
+    ax.plot(
+        xy[:, 0],
+        xy[:, 1],
+        marker="o",
+        linewidth=2,
+    )
 
     ax.set_title(
-        f"{title} — Distance: "
-        f"{tour_length(tour, instance.distance_matrix):.4f}"
+        f"{title} — Cost: "
+        f"{tour_cost(tour, instance):.4f}"
     )
 
     return ax
@@ -61,10 +75,13 @@ def save_simulation(simulator, project_root):
         "start_city": simulator.start_city,
         "actions": simulator.tour[1:],
         "tour": simulator.tour,
-        "total_distance": simulator.total_distance,
+        "total_cost": simulator.total_cost,
     }
 
-    path.write_text(json.dumps(data, indent=2))
+    path.write_text(
+        json.dumps(data, indent=2),
+        encoding="utf-8",
+    )
 
 
 def load_saved_simulation(project_root):
@@ -73,23 +90,32 @@ def load_saved_simulation(project_root):
     if not path.exists():
         return None
 
-    return json.loads(path.read_text())
+    return json.loads(
+        path.read_text(encoding="utf-8")
+    )
 
 
-def animate_simulation(instance, actions, start_city, interval=900):
+def animate_simulation(
+    instance,
+    actions,
+    start_city,
+    interval=900,
+):
     xy = np.asarray(instance.coordinates, dtype=float)
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
     ax.scatter(
-        xy[:, 0], xy[:, 1],
+        xy[:, 0],
+        xy[:, 1],
         s=100,
         zorder=3,
     )
 
     for i, (x, y) in enumerate(xy):
         ax.annotate(
-            str(i), (x, y),
+            str(i),
+            (x, y),
             xytext=(7, 7),
             textcoords="offset points",
         )
@@ -109,39 +135,47 @@ def animate_simulation(instance, actions, start_city, interval=900):
         zorder=5,
     )
 
-    line, = ax.plot([], [], linewidth=2.5)
+    line, = ax.plot(
+        [],
+        [],
+        linewidth=2.5,
+    )
+
     current, = ax.plot(
-        [], [],
+        [],
+        [],
         "o",
         markersize=14,
         zorder=6,
     )
 
     status = ax.text(
-        0.02, 0.97, "",
+        0.02,
+        0.97,
+        "",
         transform=ax.transAxes,
         va="top",
     )
 
-    distance_labels = []
+    cost_labels = []
     route = [start_city]
 
-    def add_distance_label(a, b):
+    def add_cost_label(a, b):
         x1, y1 = xy[a]
         x2, y2 = xy[b]
 
-        distance = np.linalg.norm(xy[b] - xy[a])
+        cost = instance.cost(a, b)
 
         label = ax.text(
             (x1 + x2) / 2,
             (y1 + y2) / 2,
-            f"{distance:.2f}",
+            f"{cost:.2f}",
             ha="center",
             va="center",
             fontsize=9,
         )
 
-        distance_labels.append(label)
+        cost_labels.append(label)
 
     def update(frame):
         if frame > 0:
@@ -149,7 +183,7 @@ def animate_simulation(instance, actions, start_city, interval=900):
             city = actions[frame - 1]
 
             route.append(city)
-            add_distance_label(previous, city)
+            add_cost_label(previous, city)
 
         plotted = route.copy()
 
@@ -158,28 +192,45 @@ def animate_simulation(instance, actions, start_city, interval=900):
             plotted.append(start_city)
 
             if len(route) > 1:
-                add_distance_label(route[-1], start_city)
+                add_cost_label(
+                    route[-1],
+                    start_city,
+                )
 
         points = xy[plotted]
-        line.set_data(points[:, 0], points[:, 1])
+
+        line.set_data(
+            points[:, 0],
+            points[:, 1],
+        )
 
         city = route[-1]
+
         current.set_data(
             [xy[city, 0]],
             [xy[city, 1]],
         )
 
         if frame == 0:
-            status.set_text(f"Start city: {start_city}")
+            status.set_text(
+                f"Start city: {start_city}"
+            )
         elif frame < len(actions):
             status.set_text(
                 f"Current city: {city}   "
                 f"Next action: {actions[frame]}"
             )
         else:
-            status.set_text("Tour complete")
+            status.set_text(
+                "Tour complete"
+            )
 
-        return line, current, status, *distance_labels
+        return (
+            line,
+            current,
+            status,
+            *cost_labels,
+        )
 
     animation = FuncAnimation(
         fig,
