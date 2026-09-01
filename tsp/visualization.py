@@ -57,12 +57,14 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 def save_simulation(simulator, project_root):
     path = Path(project_root) / ".simulation.json"
 
-    path.write_text(json.dumps({
+    data = {
         "start_city": simulator.start_city,
         "actions": simulator.tour[1:],
         "tour": simulator.tour,
         "total_distance": simulator.total_distance,
-    }, indent=2))
+    }
+
+    path.write_text(json.dumps(data, indent=2))
 
 
 def load_saved_simulation(project_root):
@@ -78,8 +80,26 @@ def animate_simulation(instance, actions, start_city, interval=900):
     xy = np.asarray(instance.coordinates, dtype=float)
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    plot_cities(instance, ax)
 
+    ax.scatter(
+        xy[:, 0], xy[:, 1],
+        s=100,
+        zorder=3,
+    )
+
+    for i, (x, y) in enumerate(xy):
+        ax.annotate(
+            str(i), (x, y),
+            xytext=(7, 7),
+            textcoords="offset points",
+        )
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, alpha=0.3)
+
+    # Highlight starting city.
     ax.scatter(
         [xy[start_city, 0]],
         [xy[start_city, 1]],
@@ -90,24 +110,55 @@ def animate_simulation(instance, actions, start_city, interval=900):
     )
 
     line, = ax.plot([], [], linewidth=2.5)
-    current, = ax.plot([], [], "o", markersize=14)
+    current, = ax.plot(
+        [], [],
+        "o",
+        markersize=14,
+        zorder=6,
+    )
 
+    status = ax.text(
+        0.02, 0.97, "",
+        transform=ax.transAxes,
+        va="top",
+    )
+
+    distance_labels = []
     route = [start_city]
-    labels = []
+
+    def add_distance_label(a, b):
+        x1, y1 = xy[a]
+        x2, y2 = xy[b]
+
+        distance = np.linalg.norm(xy[b] - xy[a])
+
+        label = ax.text(
+            (x1 + x2) / 2,
+            (y1 + y2) / 2,
+            f"{distance:.2f}",
+            ha="center",
+            va="center",
+            fontsize=9,
+        )
+
+        distance_labels.append(label)
 
     def update(frame):
         if frame > 0:
-            route.append(actions[frame - 1])
+            previous = route[-1]
+            city = actions[frame - 1]
 
-        # Clear previous edge-distance labels.
-        for label in labels:
-            label.remove()
-        labels.clear()
+            route.append(city)
+            add_distance_label(previous, city)
 
         plotted = route.copy()
 
+        # Final return to the starting city.
         if frame == len(actions):
             plotted.append(start_city)
+
+            if len(route) > 1:
+                add_distance_label(route[-1], start_city)
 
         points = xy[plotted]
         line.set_data(points[:, 0], points[:, 1])
@@ -118,27 +169,17 @@ def animate_simulation(instance, actions, start_city, interval=900):
             [xy[city, 1]],
         )
 
-        # Show distance on every edge already travelled.
-        for i in range(len(plotted) - 1):
-            a, b = plotted[i], plotted[i + 1]
-
-            distance = np.linalg.norm(xy[b] - xy[a])
-
-            mx = (xy[a, 0] + xy[b, 0]) / 2
-            my = (xy[a, 1] + xy[b, 1]) / 2
-
-            labels.append(
-                ax.annotate(
-                    f"{distance:.2f}",
-                    (mx, my),
-                    xytext=(0, 7),
-                    textcoords="offset points",
-                    ha="center",
-                    fontsize=9,
-                )
+        if frame == 0:
+            status.set_text(f"Start city: {start_city}")
+        elif frame < len(actions):
+            status.set_text(
+                f"Current city: {city}   "
+                f"Next action: {actions[frame]}"
             )
+        else:
+            status.set_text("Tour complete")
 
-        return line, current, *labels
+        return line, current, status, *distance_labels
 
     animation = FuncAnimation(
         fig,
