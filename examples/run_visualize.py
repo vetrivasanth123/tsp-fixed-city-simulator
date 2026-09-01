@@ -1,7 +1,5 @@
-"""Visualize the exact most recently completed TSP simulation."""
 
 from pathlib import Path
-import json
 import sys
 
 from IPython.display import HTML, display
@@ -12,38 +10,37 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from tsp.instance import TSPInstance
-from tsp.visualization import animate_simulation
+from tsp.visualization import load_saved_simulation, animate_simulation
 
 
-def main() -> None:
-    record_path = PROJECT_ROOT / ".tsp_last_simulation.json"
-
-    if not record_path.exists():
-        raise RuntimeError(
-            "No simulation found. Run run_fixed_city.py first."
-        )
-
-    with open(record_path) as f:
-        record = json.load(f)
-
+def main():
     instance = TSPInstance.from_json(
         PROJECT_ROOT / "instances" / "five_cities.json"
     )
 
-    print("Visualizing saved simulation:")
-    print("Start city:", record["start_city"])
-    print("Actions:", record["actions"])
-    print("Tour:", record["tour"])
-    print("Distance:", record["total_distance"])
+    saved = load_saved_simulation(PROJECT_ROOT)
+
+    if saved is None:
+        raise RuntimeError(
+            "No simulation exists. Run run_fixed_city.py first."
+        )
+
+    print("\nVisualizing saved simulation:")
+    print("Start city:", saved["start_city"])
+    print("Actions:", saved["actions"])
+    print("Tour:", saved["tour"])
+    print("Distance:", saved["total_distance"])
 
     fig, animation = animate_simulation(
-        instance=instance,
-        actions=record["actions"],
-        start_city=record["start_city"],
+        instance,
+        saved["actions"],
+        saved["start_city"],
     )
 
     display(HTML(animation.to_jshtml()))
+    print("\n✓ Simulation video displayed.")
 
 
 if __name__ == "__main__":
     main()
+
