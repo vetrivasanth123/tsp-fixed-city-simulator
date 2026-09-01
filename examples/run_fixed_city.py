@@ -1,8 +1,5 @@
-"""Run one fixed-city TSP simulation and record its trajectory."""
 
 from pathlib import Path
-import json
-import random
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -12,15 +9,15 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
+from tsp.visualization import save_simulation
 
 
-def main() -> None:
+def main():
     instance = TSPInstance.from_json(
         PROJECT_ROOT / "instances" / "five_cities.json"
     )
 
     simulator = TSPSimulator(instance)
-    actions = []
 
     print("Project root:", PROJECT_ROOT)
     print("Instance:", instance.name)
@@ -42,15 +39,13 @@ def main() -> None:
 
     while simulator.available_actions():
         state = simulator.state()
-        available = state["available_actions"]
+        actions = state["available_actions"]
 
-        # Temporary random policy.
-        action = random.choice(available)
-        actions.append(action)
+        action = simulator._rng.choice(actions)
 
         print(
             f"Current city: {state['current_city']} | "
-            f"Available actions: {available} | "
+            f"Available actions: {actions} | "
             f"Selected action: {action}"
         )
 
@@ -65,20 +60,11 @@ def main() -> None:
     print("Closed:", simulator.done)
     print("Total distance:", simulator.total_distance)
 
-    # Save only the exact simulation trajectory, not video frames.
-    record = {
-        "instance": instance.name,
-        "start_city": simulator.start_city,
-        "actions": actions,
-        "tour": simulator.tour,
-        "total_distance": simulator.total_distance,
-    }
-
-    with open(PROJECT_ROOT / ".tsp_last_simulation.json", "w") as f:
-        json.dump(record, f, indent=2)
+    save_simulation(simulator, PROJECT_ROOT)
 
     print("\nSimulation saved for visualization.")
 
 
 if __name__ == "__main__":
     main()
+
