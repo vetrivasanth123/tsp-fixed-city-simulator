@@ -29,8 +29,8 @@ class TSPSimulator:
         The first selected city becomes the starting city.
         Subsequent cities add travel distance from the current city.
 
-        When every city has been visited, the tour is automatically
-        closed by returning to the starting city.
+        Visiting every city does not automatically close the tour.
+        Call close_tour() explicitly to return to the starting city.
         """
 
         if self.done:
@@ -59,14 +59,14 @@ class TSPSimulator:
             self.tour.append(next_city)
             self.current_city = next_city
 
-        # Automatically close a complete tour.
-        if len(self.tour) == self.instance.num_cities:
-            self.close_tour()
-
         return self.state()
 
     def close_tour(self) -> dict[str, Any]:
-        """Return to the starting city and complete the tour."""
+        """
+        Return to the starting city and complete the tour.
+
+        The tour must contain at least one city.
+        """
 
         if not self.tour:
             raise ValueError("Cannot close an empty tour.")
@@ -74,8 +74,10 @@ class TSPSimulator:
         if self.done:
             return self.state()
 
+        start_city = self.tour[0]
+
+        # Add the final edge back to the starting city.
         if len(self.tour) > 1:
-            start_city = self.tour[0]
             self.total_distance += self.instance.distance(
                 self.current_city,
                 start_city,
@@ -97,6 +99,8 @@ class TSPSimulator:
         }
 
     def _validate_city(self, city: int) -> None:
+        """Validate a city index."""
+
         if not isinstance(city, int):
             raise TypeError("City index must be an integer.")
 
