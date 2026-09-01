@@ -1,151 +1,248 @@
-from __future__ import annotations
+from pathlib import Path
 
-from typing import Any
+import pytest
 
-import random
+from tsp.instance import TSPInstance
+from tsp.simulator import TSPSimulator
 
-from .instance import TSPInstance
+
+INSTANCE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "instances"
+    / "five_cities.json"
+)
 
 
-class TSPSimulator:
-    """Simulator for constructing TSP tours on a fixed set of cities."""
+@pytest.fixture
+def instance():
+    """Load the standard five-city test instance."""
+    return TSPInstance.from_json(INSTANCE_PATH)
 
-    def __init__(
-        self,
-        instance: TSPInstance,
-        seed: int | None = None,
-    ) -> None:
-        self.instance = instance
-        self._rng = random.Random(seed)
-        self.reset()
 
-    def reset(self) -> dict[str, Any]:
-        """
-        Reset the simulator and randomly select a starting city.
+@pytest.fixture
+def simulator(instance):
+    """Create a simulator with a fixed seed."""
+    return TSPSimulator(instance, seed=42)
 
-        Returns
-        -------
-        dict
-            Initial simulator state.
-        """
 
-        self.start_city = self._rng.randrange(
-            self.instance.num_cities
+def test_simulator_initial_state(simulator):
+    """A new simulator should have a valid random starting city."""
+
+    assert simulator.tour == [simulator.start_city]
+    assert simulator.current_city == simulator.start_city
+    assert simulator.total_distance == pytest.approx(0.0)
+    assert simulator.done is False
+
+    assert simulator.start_city in range(
+        simulator.instance.num_cities
+    )
+
+
+def test_reset_creates_random_start(instance):
+    """Reset should create a valid starting city."""
+
+    simulator = TSPSimulator(instance, seed=42)
+
+    state = simulator.reset()
+
+    assert len(simulator.tour) == 1
+    assert simulator.tour[0] == simulator.start_city
+    assert simulator.current_city == simulator.start_city
+
+    assert state["current_city"] == simulator.start_city
+
+    assert simulator.total_distance == pytest.approx(0.0)
+
+
+def test_available_actions_excludes_visited_city(simulator):
+    """Available actions should contain only unvisited cities."""
+
+    available = simulator.available_actions()
+
+    assert simulator.start_city not in available
+
+    assert len(available) == (
+        simulator.instance.num_cities - 1
+    )
+
+    for city in available:
+        assert city not in simulator.tour
+
+
+def test_step_adds_city(simulator):
+    """Stepping to an unvisited city should extend the tour."""
+
+    next_city = simulator.available_actions()[0]
+
+    old_city = simulator.current_city
+
+    simulator.step(next_city)
+
+    assert simulator.tour == [
+        simulator.start_city,
+        next_city,
+    ]
+
+    assert simulator.current_city == next_city
+
+    expected_distance = simulator.instance.distance(
+        old_city,
+        next_city,
+    )
+
+    assert simulator.total_distance == pytest.approx(
+        expected_distance
+    )
+
+
+def test_multiple_steps_build_tour(simulator):
+    """Multiple valid actions should build a partial tour."""
+
+    actions = simulator.available_actions()[:3]
+
+    for city in actions:
+        simulator.step(city)
+
+    assert len(simulator.tour) == 4
+
+    assert len(set(simulator.tour)) == 4
+
+    assert simulator.current_city == actions[-1]
+
+
+def test_distance_updates_after_step(simulator):
+    """Distance should increase by the selected edge length."""
+
+    first_city = simulator.start_city
+
+    next_city = simulator.available_actions()[0]
+
+    simulator.step(next_city)
+
+    expected = simulator.instance.distance(
+        first_city,
+        next_city,
+    )
+
+    assert simulator.total_distance == pytest.approx(
+        expected
+    )
+
+
+def test_close_tour_returns_to_start(simulator):
+    """Closing the tour should add the final edge to the start."""
+
+    while len(simulator.tour) < simulator.instance.num_cities:
+        next_city = simulator.available_actions()[0]
+
+        simulator.step(next_city)
+
+    distance_before_close = simulator.total_distance
+
+    last_city = simulator.current_city
+    start_city = simulator.start_city
+
+    simulator.close_tour()
+
+    final_edge = simulator.instance.distance(
+        last_city,
+        start_city,
+    )
+
+    assert simulator.total_distance == pytest.approx(
+        distance_before_close + final_edge
+    )
+
+    assert simulator.done is True
+
+
+def test_complete_five_city_tour(simulator):
+    """A complete tour should contain every city exactly once."""
+
+    while len(simulator.tour) < simulator.instance.num_cities:
+        simulator.step(
+            simulator.available_actions()[0]
         )
 
-        self.tour: list[int] = [self.start_city]
+    assert len(simulator.tour) == 5
 
-        self.current_city: int = self.start_city
+    assert len(set(simulator.tour)) == 5
 
-        self.total_distance: float = 0.0
+    assert sorted(simulator.tour) == [0, 1, 2, 3, 4]
 
-        self.done: bool = False
+    simulator.close_tour()
 
-        return self.state()
+    assert simulator.done is True
 
-    def available_actions(self) -> list[int]:
-        """
-        Return the cities that can be selected next.
+    assert simulator.total_distance > 0.0
 
-        The starting city and all previously visited cities
-        are excluded.
-        """
 
-        if self.done:
-            return []
+def test_invalid_city_index_is_rejected(simulator):
+    """A city index outside the instance should raise an error."""
 
-        visited = set(self.tour)
+    with pytest.raises((ValueError, IndexError)):
+        simulator.step(5)
 
-        return [
-            city
-            for city in range(self.instance.num_cities)
-            if city not in visited
-        ]
 
-    def step(self, next_city: int) -> dict[str, Any]:
-        """
-        Move from the current city to an unvisited city.
+def test_negative_city_index_is_rejected(simulator):
+    """Negative city indices should not be accepted."""
 
-        Parameters
-        ----------
-        next_city:
-            City selected as the next action.
+    with pytest.raises((ValueError, IndexError)):
+        simulator.step(-1)
 
-        Returns
-        -------
-        dict
-            Updated simulator state.
-        """
 
-        if self.done:
-            raise RuntimeError(
-                "Episode is already complete. Call reset()."
-            )
+def test_duplicate_city_is_rejected(simulator):
+    """A visited city should not be selectable again."""
 
-        self._validate_city(next_city)
+    next_city = simulator.available_actions()[0]
 
-        if next_city in self.tour:
-            raise ValueError(
-                f"City {next_city} has already been visited."
-            )
+    simulator.step(next_city)
 
-        self.total_distance += self.instance.distance(
-            self.current_city,
-            next_city,
+    with pytest.raises(ValueError):
+        simulator.step(next_city)
+
+
+def test_close_empty_tour_is_not_allowed(instance):
+    """A simulator cannot close a tour with no starting city."""
+
+    simulator = TSPSimulator(instance, seed=42)
+
+    simulator.tour = []
+
+    simulator.current_city = None
+
+    with pytest.raises(ValueError):
+        simulator.close_tour()
+
+
+def test_step_after_completion_is_rejected(simulator):
+    """No actions should be accepted after completion."""
+
+    while len(simulator.tour) < simulator.instance.num_cities:
+        simulator.step(
+            simulator.available_actions()[0]
         )
 
-        self.tour.append(next_city)
+    simulator.close_tour()
 
-        self.current_city = next_city
+    with pytest.raises(RuntimeError):
+        simulator.step(0)
 
-        return self.state()
 
-    def close_tour(self) -> dict[str, Any]:
-        """
-        Return to the starting city and complete the tour.
-        """
+def test_state_contains_available_actions(simulator):
+    """State should expose actions available to an agent."""
 
-        if not self.tour:
-            raise ValueError(
-                "Cannot close an empty tour."
-            )
+    state = simulator.state()
 
-        if self.done:
-            return self.state()
+    assert "tour" in state
+    assert "current_city" in state
+    assert "start_city" in state
+    assert "visited" in state
+    assert "available_actions" in state
+    assert "total_distance" in state
+    assert "done" in state
 
-        if len(self.tour) > 1:
-            self.total_distance += self.instance.distance(
-                self.current_city,
-                self.start_city,
-            )
-
-        self.done = True
-
-        return self.state()
-
-    def state(self) -> dict[str, Any]:
-        """Return the current simulator state."""
-
-        return {
-            "tour": list(self.tour),
-            "start_city": self.start_city,
-            "current_city": self.current_city,
-            "visited": list(self.tour),
-            "available_actions": self.available_actions(),
-            "total_distance": self.total_distance,
-            "done": self.done,
-        }
-
-    def _validate_city(self, city: int) -> None:
-        """Validate a city index."""
-
-        if not isinstance(city, int):
-            raise TypeError(
-                "City index must be an integer."
-            )
-
-        if city < 0 or city >= self.instance.num_cities:
-            raise IndexError(
-                f"City index {city} is out of range for "
-                f"{self.instance.num_cities} cities."
-            )
+    assert (
+        state["available_actions"]
+        == simulator.available_actions()
+    )
