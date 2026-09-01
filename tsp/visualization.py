@@ -1,27 +1,27 @@
 from __future__ import annotations
 
-from typing import Sequence
-
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 
 from .instance import TSPInstance
-from .utils import tour_length
 
 
-def plot_cities(
-    instance: TSPInstance,
-    ax=None,
-    show_labels: bool = True,
-    title: str = "TSP City Locations",
+def animate_simulation(
+    simulator,
+    interval: int = 1000,
 ):
-    """Plot fixed city locations."""
+    """
+    Animate the exact simulation already executed.
 
-    if ax is None:
-        _, ax = plt.subplots()
+    No actions are selected and no simulation is run here.
+    """
 
+    instance: TSPInstance = simulator.instance
+    history = simulator.history
     coordinates = np.asarray(instance.coordinates, dtype=float)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     ax.scatter(
         coordinates[:, 0],
@@ -30,104 +30,25 @@ def plot_cities(
         zorder=3,
     )
 
-    if show_labels:
-        for city, (x, y) in enumerate(coordinates):
-            ax.annotate(
-                str(city),
-                (x, y),
-                xytext=(7, 7),
-                textcoords="offset points",
-            )
+    for city, (x, y) in enumerate(coordinates):
+        ax.annotate(
+            str(city),
+            (x, y),
+            xytext=(7, 7),
+            textcoords="offset points",
+        )
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True, alpha=0.3)
 
-    return ax
+    # Highlight starting city.
+    start = simulator.start_city
 
-
-def plot_tour(
-    instance: TSPInstance,
-    tour: Sequence[int],
-    ax=None,
-    show_labels: bool = True,
-    show_distance: bool = True,
-    close_tour: bool = True,
-    title: str = "TSP Tour",
-):
-    """Plot a completed TSP tour."""
-
-    tour = list(tour)
-
-    if len(tour) != instance.num_cities:
-        raise ValueError("Tour must contain every city exactly once.")
-
-    if sorted(tour) != list(range(instance.num_cities)):
-        raise ValueError("Tour contains invalid or duplicate cities.")
-
-    if ax is None:
-        _, ax = plt.subplots()
-
-    coordinates = np.asarray(instance.coordinates, dtype=float)
-
-    plot_cities(instance, ax, show_labels, title)
-
-    route = tour + [tour[0]] if close_tour else tour
-
-    xy = coordinates[route]
-
-    ax.plot(
-        xy[:, 0],
-        xy[:, 1],
-        marker="o",
-        linewidth=2,
-        zorder=2,
-    )
-
-    if show_distance:
-        distance = tour_length(
-            tour,
-            instance.distance_matrix,
-        )
-        ax.set_title(
-            f"{title} — Distance: {distance:.4f}"
-        )
-
-    return ax
-
-
-def animate_simulation(
-    instance: TSPInstance,
-    start_city: int,
-    actions: Sequence[int],
-    interval: int = 1000,
-):
-    """
-    Animate an already-recorded simulator run.
-
-    No simulation or action selection happens here.
-    """
-
-    coordinates = np.asarray(
-        instance.coordinates,
-        dtype=float,
-    )
-
-    actions = list(actions)
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    plot_cities(
-        instance,
-        ax=ax,
-        title="Fixed-City TSP Simulation",
-    )
-
-    # Starting city highlight.
     ax.scatter(
-        coordinates[start_city, 0],
-        coordinates[start_city, 1],
+        coordinates[start, 0],
+        coordinates[start, 1],
         s=240,
         facecolors="none",
         linewidths=3,
@@ -159,22 +80,22 @@ def animate_simulation(
     )
 
     def update(frame):
-        route = [start_city] + actions[:frame]
+        record = history[frame]
+        tour = record["tour"]
 
-        # Add return edge only after the last action.
-        plotted = route.copy()
+        route = list(tour)
 
-        if frame == len(actions):
-            plotted.append(start_city)
+        if record["done"]:
+            route.append(start)
 
-        xy = coordinates[plotted]
+        xy = coordinates[route]
 
         route_line.set_data(
             xy[:, 0],
             xy[:, 1],
         )
 
-        current = route[-1]
+        current = record["current_city"]
 
         current_marker.set_data(
             [coordinates[current, 0]],
@@ -183,26 +104,24 @@ def animate_simulation(
 
         if frame == 0:
             info.set_text(
-                f"Start city: {start_city}\n"
-                f"Available actions: {actions}"
+                f"Start city: {start}\n"
+                f"Current city: {current}"
             )
 
-        elif frame < len(actions):
-            previous = route[-2]
-            selected = actions[frame - 1]
-
+        elif record["done"]:
             info.set_text(
-                f"Current city: {previous}\n"
-                f"Selected action: {selected}\n"
-                f"Moved to city: {current}"
+                f"Tour complete\n"
+                f"Tour: {tour} → {start}\n"
+                f"Distance: {record['distance']:.4f}"
             )
 
         else:
+            previous = history[frame - 1]["current_city"]
+
             info.set_text(
-                f"Tour complete\n"
-                f"Tour: {route}\n"
-                f"Distance: "
-                f"{tour_length(route, instance.distance_matrix):.4f}"
+                f"Current city: {previous}\n"
+                f"Selected action: {record['action']}\n"
+                f"Moved to city: {current}"
             )
 
         return route_line, current_marker, info
@@ -210,10 +129,10 @@ def animate_simulation(
     animation = FuncAnimation(
         fig,
         update,
-        frames=len(actions) + 1,
+        frames=len(history),
         interval=interval,
         repeat=False,
         blit=False,
     )
 
-    return fig, animation
+    return animation
