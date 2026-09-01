@@ -13,15 +13,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from tsp.instance import TSPInstance
 import tsp.visualization as visualization
 
-# Always use the latest visualization.py
 importlib.reload(visualization)
 
 
 def main():
-    instance = TSPInstance.from_json(
-        PROJECT_ROOT / "instances" / "five_cities.json"
-    )
-
     saved = visualization.load_saved_simulation(PROJECT_ROOT)
 
     if saved is None:
@@ -29,11 +24,19 @@ def main():
             "No simulation exists. Run run_fixed_city.py first."
         )
 
+    instance = TSPInstance.from_json(
+        PROJECT_ROOT / "instances" / f"{saved['instance']}.json"
+    )
+
     print("Visualizing saved simulation:")
+    print("Saved instance:", saved["instance"])
     print("Start city:", saved["start_city"])
     print("Actions:", saved["actions"])
-    print("Tour:", saved["tour"] + [saved["start_city"]])
+    print("Tour:", saved["tour"])
     print("Cost:", saved["total_cost"])
+
+    print("\nVisualization cost matrix:")
+    print(instance.cost_matrix)
 
     _, animation = visualization.animate_simulation(
         instance,
