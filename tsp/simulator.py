@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from typing import Any
@@ -20,37 +21,51 @@ class TSPSimulator:
 
     def reset(self) -> dict[str, Any]:
         """Start a new episode at a random city."""
-        self.start_city = self._rng.randrange(self.instance.num_cities)
+
+        self.start_city = self._rng.randrange(
+            self.instance.num_cities
+        )
         self.tour = [self.start_city]
         self.current_city = self.start_city
-        self.total_distance = 0.0
+        self.total_cost = 0.0
         self.done = False
+
         return self.state()
 
     def available_actions(self) -> list[int]:
         """Return unvisited cities that can be selected."""
+
         if self.done:
             return []
 
         visited = set(self.tour)
+
         return [
-            city for city in range(self.instance.num_cities)
+            city
+            for city in range(self.instance.num_cities)
             if city not in visited
         ]
 
     def step(self, next_city: int) -> dict[str, Any]:
         """Move to an unvisited city."""
+
         if self.done:
-            raise RuntimeError("Episode is already complete. Call reset().")
+            raise RuntimeError(
+                "Episode is already complete. Call reset()."
+            )
 
         self._validate_city(next_city)
 
         if next_city in self.tour:
-            raise ValueError(f"City {next_city} has already been visited.")
+            raise ValueError(
+                f"City {next_city} has already been visited."
+            )
 
-        self.total_distance += self.instance.distance(
-            self.current_city, next_city
+        self.total_cost += self.instance.cost(
+            self.current_city,
+            next_city,
         )
+
         self.tour.append(next_city)
         self.current_city = next_city
 
@@ -58,30 +73,36 @@ class TSPSimulator:
 
     def close_tour(self) -> dict[str, Any]:
         """Return to the starting city."""
+
         if not self.tour:
             raise ValueError("Cannot close an empty tour.")
 
         if not self.done and len(self.tour) > 1:
-            self.total_distance += self.instance.distance(
-                self.current_city, self.start_city
+            self.total_cost += self.instance.cost(
+                self.current_city,
+                self.start_city,
             )
 
         self.done = True
+
         return self.state()
 
     def state(self) -> dict[str, Any]:
         """Return the current simulator state."""
+
         return {
             "tour": list(self.tour),
             "start_city": self.start_city,
             "current_city": self.current_city,
             "visited": list(self.tour),
             "available_actions": self.available_actions(),
-            "total_distance": self.total_distance,
+            "total_cost": self.total_cost,
             "done": self.done,
         }
 
     def _validate_city(self, city: int) -> None:
+        """Validate a city index."""
+
         if not isinstance(city, int):
             raise TypeError("City index must be an integer.")
 
@@ -90,3 +111,4 @@ class TSPSimulator:
                 f"City index {city} is out of range for "
                 f"{self.instance.num_cities} cities."
             )
+
