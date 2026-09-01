@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .utils import euclidean_distance_matrix
+
 
 class TSPInstance:
     """TSP instance with configurable edge costs."""
@@ -29,8 +31,7 @@ class TSPInstance:
         self.coordinates = coordinates
         self.num_cities = len(coordinates)
 
-        differences = coordinates[:, None, :] - coordinates[None, :, :]
-        self.distance_matrix = np.linalg.norm(differences, axis=2)
+        self.distance_matrix = euclidean_distance_matrix(coordinates)
 
         if cost_matrix is None:
             cost_matrix = self.distance_matrix.copy()
