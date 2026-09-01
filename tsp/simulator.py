@@ -5,6 +5,13 @@ import random
 
 from .instance import TSPInstance
 
+_LAST_SIMULATOR = None
+
+
+def get_last_simulator():
+    """Return the most recently executed simulator."""
+    return _LAST_SIMULATOR
+
 
 class TSPSimulator:
     """Simulator for constructing TSP tours on fixed cities."""
@@ -14,8 +21,11 @@ class TSPSimulator:
         instance: TSPInstance,
         seed: int | None = None,
     ) -> None:
+        global _LAST_SIMULATOR
+
         self.instance = instance
         self._rng = random.Random(seed)
+        _LAST_SIMULATOR = self
         self.reset()
 
     def reset(self) -> dict[str, Any]:
@@ -24,16 +34,23 @@ class TSPSimulator:
         self.start_city = self._rng.randrange(
             self.instance.num_cities
         )
-
         self.tour = [self.start_city]
         self.current_city = self.start_city
         self.total_distance = 0.0
         self.done = False
 
+        self.history = [{
+            "tour": list(self.tour),
+            "current_city": self.current_city,
+            "action": None,
+            "distance": self.total_distance,
+            "done": False,
+        }]
+
         return self.state()
 
     def available_actions(self) -> list[int]:
-        """Return all unvisited cities."""
+        """Return unvisited cities."""
 
         if self.done:
             return []
@@ -69,10 +86,18 @@ class TSPSimulator:
         self.tour.append(next_city)
         self.current_city = next_city
 
+        self.history.append({
+            "tour": list(self.tour),
+            "current_city": self.current_city,
+            "action": next_city,
+            "distance": self.total_distance,
+            "done": False,
+        })
+
         return self.state()
 
     def close_tour(self) -> dict[str, Any]:
-        """Return to the starting city and finish the tour."""
+        """Return to the start and complete the tour."""
 
         if not self.tour:
             raise ValueError("Cannot close an empty tour.")
@@ -86,6 +111,14 @@ class TSPSimulator:
         )
 
         self.done = True
+
+        self.history.append({
+            "tour": list(self.tour),
+            "current_city": self.current_city,
+            "action": self.start_city,
+            "distance": self.total_distance,
+            "done": True,
+        })
 
         return self.state()
 
@@ -103,12 +136,8 @@ class TSPSimulator:
         }
 
     def _validate_city(self, city: int) -> None:
-        """Validate a city index."""
-
         if not isinstance(city, int):
-            raise TypeError(
-                "City index must be an integer."
-            )
+            raise TypeError("City index must be an integer.")
 
         if city < 0 or city >= self.instance.num_cities:
             raise IndexError(
