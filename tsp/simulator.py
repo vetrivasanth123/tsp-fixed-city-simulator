@@ -32,6 +32,12 @@ class TSPSimulator:
 
         return self.state()
 
+    @property
+    def total_distance(self) -> float:
+        """Backward-compatible name for the accumulated cost."""
+
+        return self.total_cost
+
     def available_actions(self) -> list[int]:
         """Return unvisited cities that can be selected."""
 
@@ -96,6 +102,7 @@ class TSPSimulator:
             "current_city": self.current_city,
             "visited": list(self.tour),
             "available_actions": self.available_actions(),
+            "total_distance": self.total_distance,
             "total_cost": self.total_cost,
             "done": self.done,
         }
