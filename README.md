@@ -2,7 +2,7 @@
 
 A lightweight simulator for the **Traveling Salesman Problem (TSP)** with a fixed set of cities.
 
-This project provides a clean foundation for studying sequential decision-making on a deterministic TSP instance. The initial implementation uses a small fixed-city example (e.g., 5 cities) while keeping the simulator architecture flexible enough to support different cost models, larger instances, and parameterized TSP problems in later stages.
+This project provides a clean foundation for studying sequential decision-making on a deterministic TSP instance. The initial implementation uses a small fixed-city example (5 cities) while keeping the simulator architecture flexible enough to support different cost models, larger instances, and parameterized TSP problems in later stages.
 
 ## Project Scope
 
@@ -15,6 +15,7 @@ The project is developed incrementally:
 * Maintain the current tour state.
 * Apply city-selection actions.
 * Track visited and unvisited cities.
+* Prevent repeated city visits during sequential tour construction.
 * Calculate and accumulate tour cost.
 * Save and replay simulation trajectories.
 * Provide static and animated route visualization.
@@ -22,7 +23,7 @@ The project is developed incrementally:
 
 ### Phase 2 — Gym/Gymnasium Environment
 
-Convert the simulator into a Gym/Gymnasium-compatible environment with well-defined observation and action spaces.
+Convert the simulator into a Gym/Gymnasium-compatible environment with well-defined observation and action spaces, reward handling, termination, and invalid-action handling.
 
 ### Phase 3 — PPO / Reinforcement Learning
 
@@ -33,6 +34,8 @@ Use the environment as the foundation for reinforcement-learning experiments, in
 Extend the fixed-city formulation toward the broader MTP formulation, including parameterized problem instances and additional decision-making components required by the major project.
 
 The current repository intentionally implements **only Phase 1**.
+
+---
 
 ## Design Goals
 
@@ -45,27 +48,33 @@ The architecture is designed around:
 * fixed TSP instances,
 * configurable edge costs,
 * explicit simulator state,
-* simple action execution,
+* sequential action execution,
+* structural prevention of repeated-city visits,
 * reproducible trajectories,
 * testable components,
 * minimal dependencies,
 * and future extensibility.
 
+---
+
 ## Initial Problem
 
 For a set of \(N\) cities, the simulator maintains a tour beginning from a randomly selected starting city.
 
-At each step, an action selects an unvisited city. The simulator:
+At each step, an action selects an **unvisited city**. The simulator:
 
 1. validates the action,
 2. moves to the selected city,
 3. updates the visited-city state,
 4. accumulates the corresponding edge cost,
-5. determines whether the tour is complete.
+5. updates the available actions,
+6. continues until the route is completed.
 
-When all cities have been visited, the simulator closes the tour by returning to the starting city.
+When the tour is closed, the simulator returns to the starting city and adds the corresponding closing-edge cost.
 
-The objective is to minimize the **total tour cost**.
+The TSP formulation aims to minimize the **total tour cost**. The current simulator, however, **does not perform optimization**; it executes and evaluates the trajectory supplied by the action selector.
+
+---
 
 ## Cost Model
 
@@ -97,6 +106,10 @@ as the main interface for edge costs.
 
 The Euclidean distance matrix is retained separately as geometric information.
 
+This separation allows the optimization cost to represent quantities other than physical distance, such as travel time, monetary cost, fuel consumption, energy, or another application-specific edge weight.
+
+---
+
 ## Initial Instances
 
 The repository currently contains two 5-city instances:
@@ -119,6 +132,8 @@ Example custom cost matrix:
  [15. 18.  9.  0. 11.]
  [ 8. 14. 16. 11.  0.]]
 ```
+
+---
 
 ## Repository Structure
 
@@ -151,6 +166,8 @@ tsp-fixed-city-simulator/
     └── test_simulator.py
 ```
 
+---
+
 ## Components
 
 ### `tsp/instance.py`
@@ -176,7 +193,9 @@ Responsibilities include:
 * simulator initialization and reset,
 * current-city tracking,
 * visited-city tracking,
+* available-action generation,
 * action execution,
+* duplicate-action validation,
 * cost accumulation,
 * tour completion,
 * state retrieval.
@@ -219,6 +238,8 @@ Demonstrates:
 5. reporting the result,
 6. saving the trajectory.
 
+The current example action selector chooses arbitrary valid actions for demonstration and is **not an optimization algorithm**.
+
 ### `examples/run_visualize.py`
 
 Loads the saved simulation, restores the corresponding TSP instance and cost model, and replays the exact action sequence through the animated visualization.
@@ -227,7 +248,9 @@ Loads the saved simulation, restores the corresponding TSP instance and cost mod
 
 Contains unit tests for the instance and simulator.
 
-The current test suite verifies instance loading, distance/cost behavior, state transitions, action validation, custom costs, and tour completion.
+The current test suite verifies instance loading, distance/cost behavior, state transitions, action validation, custom costs, repeated-city prevention, and tour completion.
+
+---
 
 ## Simulation State
 
@@ -243,22 +266,175 @@ total_cost
 done
 ```
 
-The action space is currently represented simply as the set of unvisited city indices.
+The action space is currently represented as city indices, with only **unvisited cities exposed as valid actions**.
 
 For example:
 
 ```text
 Current city: 3
+Visited: [3]
 Available actions: [0, 1, 2, 4]
 ```
 
-Selecting city `0` moves the simulator from city `3` to city `0` and adds:
+Selecting city `0` produces:
+
+```text
+Current city: 0
+Visited: [3, 0]
+Available actions: [1, 2, 4]
+```
+
+The selected edge contributes:
 
 ```python
 instance.cost(3, 0)
 ```
 
 to the accumulated cost.
+
+---
+
+## Structural Subtour Prevention
+
+A valid TSP solution must form a **single Hamiltonian cycle**, rather than multiple disconnected cycles or premature cycles within the route.
+
+The current sequential simulator prevents repeated-city visits structurally.
+
+The mechanism is:
+
+```text
+Current tour
+     │
+     ▼
+available_actions()
+     │
+     ▼
+Remove already visited cities
+     │
+     ▼
+Select an unvisited city
+     │
+     ▼
+step(action)
+```
+
+For example, after:
+
+```text
+3 → 0
+```
+
+city `3` is already in the tour and is no longer available as a normal action.
+
+Therefore, sequences such as:
+
+```text
+3 → 0 → 3
+```
+
+and:
+
+```text
+3 → 0 → 2 → 0
+```
+
+cannot be constructed through the normal valid-action mechanism.
+
+The simulator also performs explicit validation inside `step()`. If a previously visited city is manually supplied, the action is rejected.
+
+Conceptually:
+
+```text
+available_actions()
+    ↓
+only unvisited cities
+
+step()
+    ↓
+reject already visited cities
+```
+
+This provides the simulator's **structural subtour-prevention mechanism**.
+
+### Important distinction
+
+This should **not** be confused with classical mathematical subtour-elimination constraints used in MILP formulations.
+
+The current simulator does **not** implement:
+
+* Miller-Tucker-Zemlin (MTZ) constraints,
+* Dantzig-Fulkerson-Johnson (DFJ) constraints,
+* flow-based subtour constraints,
+* cut-generation methods,
+* or other MILP subtour-elimination formulations.
+
+Instead, subtours are prevented by the sequential action structure: cities cannot be revisited during route construction.
+
+The return to the starting city is handled separately when the tour is closed.
+
+This formulation is particularly suitable for the planned RL environment because the agent will construct the route sequentially rather than selecting all tour edges simultaneously.
+
+---
+
+## Tour Completion
+
+Once the desired route has been constructed, the tour is closed using:
+
+```python
+simulator.close_tour()
+```
+
+For example:
+
+```text
+3 → 0 → 2 → 4 → 1
+```
+
+becomes:
+
+```text
+3 → 0 → 2 → 4 → 1 → 3
+```
+
+The final edge:
+
+```text
+1 → 3
+```
+
+is added to the accumulated cost.
+
+The simulator maintains the constructed route as an open sequence until closure; the final repeated starting city represents the closing edge of the Hamiltonian cycle.
+
+---
+
+## Tour Cost
+
+For a closed tour:
+
+```text
+v0 → v1 → v2 → ... → vn → v0
+```
+
+the total cost is:
+
+```text
+C =
+c(v0,v1)
++ c(v1,v2)
++ ...
++ c(vn,v0)
+```
+
+where:
+
+```text
+c(i,j) = instance.cost(i,j)
+```
+
+The same formulation works for both Euclidean and custom cost matrices.
+
+---
 
 ## Trajectory Persistence
 
@@ -278,6 +454,10 @@ Example:
 
 The saved instance name and action sequence allow the visualization to reproduce the same trajectory using the same cost model.
 
+This also makes the simulation result independently inspectable after execution.
+
+---
+
 ## Validation
 
 The current implementation has been validated through:
@@ -287,9 +467,11 @@ The current implementation has been validated through:
 * custom-cost verification
 * invalid-action checks
 * duplicate-city checks
+* structural no-revisit/subtour checks
 * complete-tour checks
 * trajectory persistence
 * end-to-end custom-cost simulation and replay
+* cost-consistent visualization
 
 A verified custom-cost run produced:
 
@@ -301,7 +483,31 @@ Total cost:
 83.0
 ```
 
+For this trajectory:
+
+```text
+3 → 0 = 15
+0 → 2 = 20
+2 → 4 = 16
+4 → 1 = 14
+1 → 3 = 18
+```
+
+Therefore:
+
+```text
+15 + 20 + 16 + 14 + 18 = 83
+```
+
+The simulator reported:
+
+```text
+83.0
+```
+
 The visualization used the same custom cost matrix and reproduced the saved trajectory with the corresponding edge-cost labels.
+
+---
 
 ## Development Direction
 
@@ -319,7 +525,64 @@ PPO / RL
 MTP Extension
 ```
 
-This separation allows the fixed-city simulator to remain simple while providing a stable foundation for later research experiments.
+The intended progression is:
+
+```text
+Phase 1 — Complete
+Fixed-city simulator
+      ↓
+Cost abstraction
+      ↓
+Sequential transitions
+      ↓
+Subtour prevention
+      ↓
+Visualization
+      ↓
+Testing
+
+Phase 2 — Next
+Gym/Gymnasium wrapper
+      ↓
+Observation space
+      ↓
+Action space
+      ↓
+Invalid-action handling / masking
+      ↓
+Reward
+      ↓
+Termination
+
+Phase 3
+Baseline policies
+      ↓
+Random valid policy
+      ↓
+Simple heuristic
+      ↓
+Cost comparison
+
+Phase 4
+PPO / RL
+      ↓
+Training
+      ↓
+Evaluation
+
+Phase 5
+MTP extension
+      ↓
+Parameterized instances
+      ↓
+Larger experiments
+      ↓
+Additional decision-making components
+```
+
+The fixed-city simulator is therefore intended to remain a stable foundation while later layers are added around it.
+
+---
 
 ## Relationship to EvoGym
 
@@ -329,6 +592,13 @@ The simulator architecture is **conceptually inspired by the environment-oriente
 
 No EvoGym source code, soft-body physics, robot morphology, actuator mechanics, mass-spring dynamics, robot tasks, or optimization implementations are used in this project.
 
+The relevant architectural inspiration is limited to ideas such as:
+
+* separating environment dynamics from learning,
+* exposing state and actions,
+* treating the environment as an independent experimental component,
+* and supporting visualization/replay of experimental behavior.
+
 Any third-party code that is actually incorporated will be identified in:
 
 ```text
@@ -336,6 +606,8 @@ THIRD_PARTY_LICENSES.md
 ```
 
 and credited according to its applicable license.
+
+---
 
 ## License
 
