@@ -1,4 +1,4 @@
-```python
+
 """
 Demonstration of the fixed-city TSP simulator.
 
@@ -188,4 +188,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-```
+
