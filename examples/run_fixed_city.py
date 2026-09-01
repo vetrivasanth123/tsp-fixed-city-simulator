@@ -7,17 +7,21 @@ This example:
 2. Creates the simulator.
 3. Randomly selects a starting city.
 4. Displays the initial state.
-5. Selects valid actions sequentially.
+5. Randomly selects a valid next city.
 6. Records every simulator transition.
 7. Closes the tour.
 8. Displays the final result.
 9. Animates the exact simulator trajectory.
 
 No optimization or RL agent is used yet.
+
+The random action policy is only a temporary demonstration
+of how an eventual RL agent will interact with the simulator.
 """
 
 from pathlib import Path
 import sys
+import random
 
 import matplotlib.pyplot as plt
 
@@ -47,7 +51,7 @@ from tsp.visualization import animate_simulation
 def main():
 
     # --------------------------------------------------
-    # 1. Instance
+    # 1. Locate instance
     # --------------------------------------------------
 
     instance_path = (
@@ -64,7 +68,7 @@ def main():
         )
 
     # --------------------------------------------------
-    # 2. Load instance
+    # 2. Load fixed instance
     # --------------------------------------------------
 
     instance = TSPInstance.from_json(
@@ -92,11 +96,25 @@ def main():
     # --------------------------------------------------
     # 3. Create simulator
     # --------------------------------------------------
+    #
+    # No seed is supplied here.
+    #
+    # Therefore the starting city is randomly selected
+    # every time this script is executed.
+    #
+    # --------------------------------------------------
 
     simulator = TSPSimulator(
-        instance,
-        seed=42,
+        instance
     )
+
+    # Separate random generator for the temporary
+    # demonstration policy.
+    #
+    # IMPORTANT:
+    # This is NOT an RL agent.
+    #
+    action_rng = random.Random()
 
     # --------------------------------------------------
     # 4. Initial state
@@ -128,7 +146,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 5. Execute actions
+    # 5. Execute simulator actions
     # --------------------------------------------------
 
     print("\nAction sequence")
@@ -142,6 +160,7 @@ def main():
             state["available_actions"]
         )
 
+        # No unvisited cities remain.
         if not available_actions:
             break
 
@@ -150,17 +169,24 @@ def main():
         )
 
         # --------------------------------------------------
-        # Temporary action-selection policy.
+        # TEMPORARY ACTION POLICY
+        # --------------------------------------------------
         #
-        # This is NOT RL.
+        # Randomly select one valid city.
         #
-        # Later this line becomes:
+        # Later this becomes:
         #
         # selected_action = agent.select_action(state)
+        #
+        # The simulator itself does not care whether
+        # the action came from random selection, a
+        # heuristic, or an RL agent.
         # --------------------------------------------------
 
         selected_action = (
-            available_actions[0]
+            action_rng.choice(
+                available_actions
+            )
         )
 
         print(
@@ -211,6 +237,17 @@ def main():
     # --------------------------------------------------
     # 8. Create animation
     # --------------------------------------------------
+    #
+    # IMPORTANT:
+    #
+    # animate_simulation DOES NOT make new decisions.
+    #
+    # It reads simulator.trajectory(), which contains
+    # exactly the actions that were already executed.
+    #
+    # Therefore the animation and printed simulation
+    # are guaranteed to describe the same trajectory.
+    # --------------------------------------------------
 
     animation = animate_simulation(
         simulator,
@@ -219,13 +256,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 9. Display
-    # --------------------------------------------------
-    #
-    # IMPORTANT:
-    # Do not use plt.show() here for Colab.
-    #
-    # Return the animation as HTML/JavaScript.
+    # 9. Display animation in Jupyter / Colab
     # --------------------------------------------------
 
     try:
