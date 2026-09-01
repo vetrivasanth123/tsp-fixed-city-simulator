@@ -18,7 +18,8 @@ class TSPSimulator:
     - accepts one action at a time,
     - tracks the partial tour and distance,
     - explicitly closes the tour,
-    - records the trajectory for visualization and later RL use.
+    - records every transition for visualization,
+    - can later be used as the environment interface for RL.
 
     No optimization or RL logic is included here.
     """
@@ -39,18 +40,12 @@ class TSPSimulator:
         seed: int | None = None,
     ) -> dict[str, Any]:
         """
-        Reset the simulator and randomly select a starting city.
+        Reset the simulator.
 
-        Parameters
-        ----------
-        seed:
-            Optional seed. If supplied, the simulator's random
-            generator is reseeded before selecting the start city.
+        If seed is supplied, the random generator is reseeded.
+        Otherwise, the existing random generator continues.
 
-        Returns
-        -------
-        dict
-            Initial simulator state.
+        A starting city is selected randomly.
         """
 
         if seed is not None:
@@ -61,7 +56,9 @@ class TSPSimulator:
             self.instance.num_cities
         )
 
-        self.tour: list[int] = [self.start_city]
+        self.tour: list[int] = [
+            self.start_city
+        ]
 
         self.current_city: int = self.start_city
 
@@ -69,29 +66,23 @@ class TSPSimulator:
 
         self.done: bool = False
 
-        # Record the complete trajectory.
-        #
-        # This is useful for visualization because the visualizer
-        # can reproduce exactly what the simulator did.
+        # Complete simulator trajectory.
         self.history: list[dict[str, Any]] = []
 
         self._record_history(
-            action=None,
             event="start",
+            action=None,
+            previous_city=None,
+            distance_added=0.0,
         )
 
         return self.state()
 
     def available_actions(self) -> list[int]:
         """
-        Return the cities that can currently be selected.
+        Return all currently valid next-city actions.
 
         Previously visited cities are excluded.
-
-        Returns
-        -------
-        list[int]
-            Valid next-city actions.
         """
 
         if self.done:
@@ -101,7 +92,9 @@ class TSPSimulator:
 
         return [
             city
-            for city in range(self.instance.num_cities)
+            for city in range(
+                self.instance.num_cities
+            )
             if city not in visited
         ]
 
@@ -110,33 +103,15 @@ class TSPSimulator:
         next_city: int,
     ) -> dict[str, Any]:
         """
-        Select the next city.
+        Move from the current city to an unvisited city.
 
-        Parameters
-        ----------
-        next_city:
-            City index selected as the next action.
-
-        Returns
-        -------
-        dict
-            Updated simulator state.
-
-        Raises
-        ------
-        RuntimeError
-            If the episode is already complete.
-
-        ValueError
-            If the city was already visited.
-
-        IndexError
-            If the city index is invalid.
+        The action is recorded in the simulator trajectory.
         """
 
         if self.done:
             raise RuntimeError(
-                "Episode is already complete. Call reset()."
+                "Episode is already complete. "
+                "Call reset()."
             )
 
         self._validate_city(next_city)
@@ -160,8 +135,8 @@ class TSPSimulator:
         self.current_city = next_city
 
         self._record_history(
-            action=next_city,
             event="step",
+            action=next_city,
             previous_city=previous_city,
             distance_added=distance_added,
         )
@@ -171,13 +146,6 @@ class TSPSimulator:
     def close_tour(self) -> dict[str, Any]:
         """
         Return to the starting city and complete the tour.
-
-        The closing edge is recorded in the trajectory.
-
-        Returns
-        -------
-        dict
-            Final simulator state.
         """
 
         if not self.tour:
@@ -193,6 +161,7 @@ class TSPSimulator:
         distance_added = 0.0
 
         if len(self.tour) > 1:
+
             distance_added = self.instance.distance(
                 previous_city,
                 self.start_city,
@@ -203,8 +172,8 @@ class TSPSimulator:
         self.done = True
 
         self._record_history(
-            action=self.start_city,
             event="close",
+            action=self.start_city,
             previous_city=previous_city,
             distance_added=distance_added,
         )
@@ -215,8 +184,8 @@ class TSPSimulator:
         """
         Return the current simulator state.
 
-        This dictionary is intentionally suitable for a future
-        RL agent interface.
+        This structure is intentionally suitable for
+        future RL integration.
         """
 
         return {
@@ -231,10 +200,10 @@ class TSPSimulator:
 
     def trajectory(self) -> list[dict[str, Any]]:
         """
-        Return a copy of the recorded simulator trajectory.
+        Return the complete simulator trajectory.
 
-        Each entry contains the state transition information needed
-        to reproduce the simulation visually.
+        The visualization uses this trajectory to reproduce
+        exactly what happened during simulation.
         """
 
         return [
@@ -244,10 +213,10 @@ class TSPSimulator:
 
     def _record_history(
         self,
-        action: int | None,
         event: str,
-        previous_city: int | None = None,
-        distance_added: float = 0.0,
+        action: int | None,
+        previous_city: int | None,
+        distance_added: float,
     ) -> None:
         """
         Record one simulator event.
@@ -279,8 +248,11 @@ class TSPSimulator:
                 "City index must be an integer."
             )
 
-        if city < 0 or city >= self.instance.num_cities:
+        if (
+            city < 0
+            or city >= self.instance.num_cities
+        ):
             raise IndexError(
-                f"City index {city} is out of range for "
-                f"{self.instance.num_cities} cities."
+                f"City index {city} is out of range "
+                f"for {self.instance.num_cities} cities."
             )
