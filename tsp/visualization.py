@@ -1,4 +1,4 @@
-```python
+
 """
 Visualization utilities for the fixed-city TSP simulator.
 
@@ -772,4 +772,3 @@ def _validate_tour(
             "Tour must contain every city "
             "index exactly once."
         )
-```
