@@ -1,45 +1,34 @@
 """
 Demonstration of the fixed-city TSP simulator.
 
-The demonstration:
+The simulator:
+1. Loads fixed city coordinates.
+2. Randomly selects a starting city.
+3. Exposes available actions.
+4. Selects actions sequentially.
+5. Records every transition.
+6. Closes the tour.
+7. Displays the exact simulator trajectory as an animation.
 
-1. Loads the fixed five-city instance.
-2. Creates the simulator.
-3. Randomly selects a starting city.
-4. Displays the initial state.
-5. Selects valid actions sequentially.
-6. Records every simulator transition.
-7. Closes the tour.
-8. Displays the final result.
-9. Animates the exact simulator trajectory.
-
-No optimization or RL agent is used yet.
-
-The action-selection section is deliberately separated from
-the simulator so that a future RL agent can replace it directly.
+No RL or optimization is used yet.
 """
 
 from pathlib import Path
 import sys
 
-import matplotlib.pyplot as plt
+from IPython.display import HTML, display
 
 # --------------------------------------------------
 # Locate project root
 # --------------------------------------------------
 
-PROJECT_ROOT = Path(
-    __file__
-).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(
-        0,
-        str(PROJECT_ROOT),
-    )
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # --------------------------------------------------
-# Project imports
+# Imports
 # --------------------------------------------------
 
 from tsp.instance import TSPInstance
@@ -50,7 +39,7 @@ from tsp.visualization import animate_simulation
 def main() -> None:
 
     # --------------------------------------------------
-    # 1. Locate instance
+    # 1. Locate fixed-city instance
     # --------------------------------------------------
 
     instance_path = (
@@ -66,7 +55,7 @@ def main() -> None:
         )
 
     # --------------------------------------------------
-    # 2. Load fixed cities
+    # 2. Load instance
     # --------------------------------------------------
 
     instance = TSPInstance.from_json(
@@ -75,17 +64,17 @@ def main() -> None:
 
     print(
         "Project root:",
-        PROJECT_ROOT,
+        PROJECT_ROOT
     )
 
     print(
         "Instance:",
-        instance.name,
+        instance.name
     )
 
     print(
         "Number of cities:",
-        instance.num_cities,
+        instance.num_cities
     )
 
     print("\nCoordinates:")
@@ -97,7 +86,7 @@ def main() -> None:
 
     simulator = TSPSimulator(
         instance,
-        seed=42,
+        seed=42
     )
 
     # --------------------------------------------------
@@ -111,26 +100,26 @@ def main() -> None:
 
     print(
         "Start city:",
-        state["start_city"],
+        state["start_city"]
     )
 
     print(
         "Current city:",
-        state["current_city"],
+        state["current_city"]
     )
 
     print(
         "Visited:",
-        state["visited"],
+        state["visited"]
     )
 
     print(
         "Available actions:",
-        state["available_actions"],
+        state["available_actions"]
     )
 
     # --------------------------------------------------
-    # 5. Sequential action selection
+    # 5. Execute simulator
     # --------------------------------------------------
 
     print("\nAction sequence")
@@ -144,10 +133,6 @@ def main() -> None:
             state["available_actions"]
         )
 
-        # ----------------------------------------------
-        # All cities have been visited.
-        # ----------------------------------------------
-
         if not available_actions:
             break
 
@@ -156,18 +141,11 @@ def main() -> None:
         )
 
         # --------------------------------------------------
-        # TEMPORARY ACTION SELECTION
-        # --------------------------------------------------
+        # Temporary action selection
         #
-        # This is NOT an optimization algorithm.
+        # This will later be replaced by:
         #
-        # It is only a placeholder demonstrating how
-        # an agent will interact with the simulator.
-        #
-        # Later:
-        #
-        #     selected_action = agent.select_action(state)
-        #
+        # action = agent.select_action(state)
         # --------------------------------------------------
 
         selected_action = (
@@ -176,10 +154,8 @@ def main() -> None:
 
         print(
             f"Current city: {current_city} | "
-            f"Available actions: "
-            f"{available_actions} | "
-            f"Selected action: "
-            f"{selected_action}"
+            f"Available actions: {available_actions} | "
+            f"Selected action: {selected_action}"
         )
 
         simulator.step(
@@ -201,38 +177,43 @@ def main() -> None:
 
     print(
         "Start city:",
-        simulator.start_city,
+        simulator.start_city
     )
 
     print(
         "Tour:",
-        simulator.tour,
+        simulator.tour
     )
 
     print(
         "Closed:",
-        simulator.done,
+        simulator.done
     )
 
     print(
         "Total distance:",
-        simulator.total_distance,
+        simulator.total_distance
     )
 
     # --------------------------------------------------
-    # 8. Animate exact simulator trajectory
+    # 8. Create animation
     # --------------------------------------------------
 
     animation = animate_simulation(
         simulator,
         interval=1200,
-        title="Fixed-City TSP Simulation",
+        title="Fixed-City TSP Simulation"
     )
 
-    # Keep a reference to the animation until plt.show().
-    _ = animation
+    # --------------------------------------------------
+    # 9. Display animation in Colab/Jupyter
+    # --------------------------------------------------
 
-    plt.show()
+    display(
+        HTML(
+            animation.to_jshtml()
+        )
+    )
 
 
 if __name__ == "__main__":
