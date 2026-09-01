@@ -8,17 +8,13 @@ from .instance import TSPInstance
 
 
 def animate_simulation(
-    simulator,
+    instance: TSPInstance,
+    actions: list[int],
+    start_city: int,
     interval: int = 1000,
 ):
-    """
-    Animate the exact simulation already executed.
+    """Animate the exact actions produced by one simulation."""
 
-    No actions are selected and no simulation is run here.
-    """
-
-    instance: TSPInstance = simulator.instance
-    history = simulator.history
     coordinates = np.asarray(instance.coordinates, dtype=float)
 
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -44,95 +40,77 @@ def animate_simulation(
     ax.grid(True, alpha=0.3)
 
     # Highlight starting city.
-    start = simulator.start_city
-
     ax.scatter(
-        coordinates[start, 0],
-        coordinates[start, 1],
-        s=240,
+        coordinates[start_city, 0],
+        coordinates[start_city, 1],
+        s=220,
         facecolors="none",
         linewidths=3,
         zorder=5,
     )
 
-    route_line, = ax.plot(
-        [],
-        [],
-        linewidth=2.5,
-        zorder=2,
-    )
+    line, = ax.plot([], [], linewidth=2.5, zorder=2)
 
-    current_marker, = ax.plot(
-        [],
-        [],
+    current, = ax.plot(
+        [], [],
         marker="o",
-        markersize=15,
+        markersize=14,
         linestyle="None",
         zorder=6,
     )
 
-    info = ax.text(
+    text = ax.text(
         0.02,
         0.96,
         "",
         transform=ax.transAxes,
-        verticalalignment="top",
+        va="top",
     )
 
+    route = [start_city]
+
     def update(frame):
-        record = history[frame]
-        tour = record["tour"]
+        route[:] = [start_city] + actions[:frame]
 
-        route = list(tour)
+        plotted = route.copy()
 
-        if record["done"]:
-            route.append(start)
+        if frame == len(actions):
+            plotted.append(start_city)
 
-        xy = coordinates[route]
+        xy = coordinates[plotted]
+        line.set_data(xy[:, 0], xy[:, 1])
 
-        route_line.set_data(
-            xy[:, 0],
-            xy[:, 1],
-        )
-
-        current = record["current_city"]
-
-        current_marker.set_data(
-            [coordinates[current, 0]],
-            [coordinates[current, 1]],
+        city = route[-1]
+        current.set_data(
+            [coordinates[city, 0]],
+            [coordinates[city, 1]],
         )
 
         if frame == 0:
-            info.set_text(
-                f"Start city: {start}\n"
-                f"Current city: {current}"
+            text.set_text(
+                f"Start city: {start_city}\n"
+                f"Available actions: {actions}"
             )
-
-        elif record["done"]:
-            info.set_text(
+        elif frame == len(actions):
+            text.set_text(
                 f"Tour complete\n"
-                f"Tour: {tour} → {start}\n"
-                f"Distance: {record['distance']:.4f}"
+                f"Tour: {route} → {start_city}"
             )
-
         else:
-            previous = history[frame - 1]["current_city"]
-
-            info.set_text(
-                f"Current city: {previous}\n"
-                f"Selected action: {record['action']}\n"
-                f"Moved to city: {current}"
+            text.set_text(
+                f"Current city: {city}\n"
+                f"Selected action: {actions[frame - 1]}"
             )
 
-        return route_line, current_marker, info
+        return line, current, text
 
     animation = FuncAnimation(
         fig,
         update,
-        frames=len(history),
+        frames=len(actions) + 1,
         interval=interval,
         repeat=False,
         blit=False,
     )
 
-    return animation
+    return fig, animation
