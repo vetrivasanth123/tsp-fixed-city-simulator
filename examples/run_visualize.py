@@ -1,6 +1,7 @@
 
 from pathlib import Path
 import sys
+import importlib
 
 from IPython.display import HTML, display
 
@@ -10,7 +11,10 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from tsp.instance import TSPInstance
-from tsp.visualization import load_saved_simulation, animate_simulation
+import tsp.visualization as visualization
+
+# Always use the latest visualization.py
+importlib.reload(visualization)
 
 
 def main():
@@ -18,7 +22,7 @@ def main():
         PROJECT_ROOT / "instances" / "five_cities.json"
     )
 
-    saved = load_saved_simulation(PROJECT_ROOT)
+    saved = visualization.load_saved_simulation(PROJECT_ROOT)
 
     if saved is None:
         raise RuntimeError(
@@ -31,7 +35,7 @@ def main():
     print("Tour:", saved["tour"])
     print("Distance:", saved["total_distance"])
 
-    _, animation = animate_simulation(
+    _, animation = visualization.animate_simulation(
         instance,
         saved["actions"],
         saved["start_city"],
