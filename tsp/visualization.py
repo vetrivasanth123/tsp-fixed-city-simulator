@@ -25,7 +25,6 @@ def plot_cities(instance, ax=None):
     ax.set_ylabel("Y")
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True, alpha=0.3)
-
     return ax
 
 
@@ -41,7 +40,6 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 
     ax.plot(xy[:, 0], xy[:, 1], marker="o", linewidth=2)
     ax.set_title(f"{title} — Cost: {tour_cost(tour, instance):.4f}")
-
     return ax
 
 
@@ -52,7 +50,7 @@ def save_simulation(simulator, project_root):
         "instance": simulator.instance.name,
         "start_city": simulator.start_city,
         "actions": simulator.tour[1:],
-        "tour": simulator.tour + [simulator.start_city],
+        "tour": simulator.tour,
         "total_cost": simulator.total_cost,
     }
 
@@ -72,7 +70,6 @@ def animate_simulation(instance, actions, start_city, interval=900):
     xy = np.asarray(instance.coordinates, dtype=float)
 
     fig, ax = plt.subplots(figsize=(8, 6))
-
     ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
 
     for i, (x, y) in enumerate(xy):
@@ -111,24 +108,21 @@ def animate_simulation(instance, actions, start_city, interval=900):
             va="center",
             fontsize=9,
         )
-
         cost_labels.append(label)
 
     def update(frame):
         if frame > 0:
             previous = route[-1]
             city = actions[frame - 1]
-
             route.append(city)
             add_cost_label(previous, city)
 
         plotted = route.copy()
 
         if frame == len(actions):
-            plotted.append(start_city)
-
             if len(route) > 1:
                 add_cost_label(route[-1], start_city)
+            plotted.append(start_city)
 
         points = xy[plotted]
         line.set_data(points[:, 0], points[:, 1])
@@ -140,8 +134,7 @@ def animate_simulation(instance, actions, start_city, interval=900):
             status.set_text(f"Start city: {start_city}")
         elif frame < len(actions):
             status.set_text(
-                f"Current city: {city}   "
-                f"Next action: {actions[frame]}"
+                f"Current city: {city}   Next action: {actions[frame]}"
             )
         else:
             status.set_text("Tour complete")
