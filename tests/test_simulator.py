@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import random
-
-from .instance import TSPInstance
+from tsp.instance import TSPInstance
 
 
 class TSPSimulator:
