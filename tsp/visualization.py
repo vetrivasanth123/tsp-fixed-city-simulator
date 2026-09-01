@@ -1,1 +1,219 @@
+"""
+Visualization utilities for the fixed-city TSP simulator.
 
+This module contains lightweight Matplotlib-based plotting functions.
+It does not contain simulation logic, optimization algorithms, or RL code.
+"""
+
+from __future__ import annotations
+
+from typing import Iterable, Optional, Sequence
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from .instance import TSPInstance
+from .utils import tour_length
+
+
+def plot_cities(
+    instance: TSPInstance,
+    ax: Optional[plt.Axes] = None,
+    show_labels: bool = True,
+    title: str = "TSP City Locations",
+) -> plt.Axes:
+    """
+    Plot the cities of a TSP instance.
+
+    Parameters
+    ----------
+    instance:
+        TSPInstance containing city coordinates.
+    ax:
+        Optional Matplotlib Axes. If None, a new figure is created.
+    show_labels:
+        Whether to display city indices next to each city.
+    title:
+        Plot title.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Axes containing the city plot.
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    coordinates = np.asarray(instance.coordinates, dtype=float)
+
+    ax.scatter(
+        coordinates[:, 0],
+        coordinates[:, 1],
+        s=80,
+        zorder=3,
+    )
+
+    if show_labels:
+        for city_index, (x, y) in enumerate(coordinates):
+            ax.annotate(
+                str(city_index),
+                (x, y),
+                xytext=(6, 6),
+                textcoords="offset points",
+            )
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_title(title)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, alpha=0.3)
+
+    return ax
+
+
+def plot_tour(
+    instance: TSPInstance,
+    tour: Sequence[int],
+    ax: Optional[plt.Axes] = None,
+    show_labels: bool = True,
+    show_distance: bool = True,
+    close_tour: bool = True,
+    title: str = "TSP Tour",
+) -> plt.Axes:
+    """
+    Plot a TSP tour over the city locations.
+
+    Parameters
+    ----------
+    instance:
+        TSPInstance containing city coordinates.
+    tour:
+        Sequence of city indices describing the visiting order.
+        The starting city does not need to be repeated at the end.
+    ax:
+        Optional Matplotlib Axes. If None, a new figure is created.
+    show_labels:
+        Whether to display city indices.
+    show_distance:
+        Whether to display the total tour length in the title.
+    close_tour:
+        Whether to draw the final edge returning to the starting city.
+    title:
+        Base plot title.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Axes containing the tour plot.
+
+    Raises
+    ------
+    ValueError
+        If the tour is invalid for the supplied instance.
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    tour = list(tour)
+
+    _validate_tour(instance, tour)
+
+    coordinates = np.asarray(instance.coordinates, dtype=float)
+
+    # Plot cities first.
+    plot_cities(
+        instance,
+        ax=ax,
+        show_labels=show_labels,
+        title=title,
+    )
+
+    # Build the plotted route.
+    route = tour.copy()
+
+    if close_tour:
+        route.append(tour[0])
+
+    route_coordinates = coordinates[route]
+
+    ax.plot(
+        route_coordinates[:, 0],
+        route_coordinates[:, 1],
+        marker="o",
+        linewidth=1.5,
+        zorder=2,
+    )
+
+    if show_distance:
+        distance = tour_length(instance.distance_matrix, tour)
+
+        ax.set_title(
+            f"{title} — Distance: {distance:.4f}"
+        )
+
+    return ax
+
+
+def plot_tour_from_simulator(
+    simulator,
+    ax: Optional[plt.Axes] = None,
+    show_labels: bool = True,
+    show_distance: bool = True,
+    title: str = "TSP Tour",
+) -> plt.Axes:
+    """
+    Plot the current tour stored by a TSP simulator.
+
+    This is a convenience wrapper for the simulator interface.
+    The simulator is expected to expose:
+        - instance
+        - tour
+
+    Parameters
+    ----------
+    simulator:
+        TSP simulator object.
+    ax:
+        Optional Matplotlib Axes.
+    show_labels:
+        Whether to display city indices.
+    show_distance:
+        Whether to display total tour distance.
+    title:
+        Plot title.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Axes containing the current simulator tour.
+    """
+    return plot_tour(
+        instance=simulator.instance,
+        tour=simulator.tour,
+        ax=ax,
+        show_labels=show_labels,
+        show_distance=show_distance,
+        title=title,
+    )
+
+
+def _validate_tour(
+    instance: TSPInstance,
+    tour: Iterable[int],
+) -> None:
+    """
+    Validate that a tour contains every city exactly once.
+    """
+    tour = list(tour)
+    num_cities = instance.num_cities
+
+    if len(tour) != num_cities:
+        raise ValueError(
+            f"Tour must contain exactly {num_cities} cities; "
+            f"received {len(tour)}."
+        )
+
+    if sorted(tour) != list(range(num_cities)):
+        raise ValueError(
+            "Tour must contain every city index exactly once."
+        )
