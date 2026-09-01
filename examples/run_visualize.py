@@ -32,7 +32,7 @@ def main():
     print("Visualizing saved simulation:")
     print("Start city:", saved["start_city"])
     print("Actions:", saved["actions"])
-    print("Tour:", saved["tour"])
+    print("Tour:", saved["tour"] + [saved["start_city"]])
     print("Distance:", saved["total_distance"])
 
     _, animation = visualization.animate_simulation(
