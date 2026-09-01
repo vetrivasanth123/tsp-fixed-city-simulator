@@ -1,43 +1,41 @@
+```python
 """
 Demonstration of the fixed-city TSP simulator.
 
-This example:
+The simulator performs the actions first and records every transition.
+The recorded trajectory is then replayed as an animation.
 
-1. Loads the fixed five-city instance.
-2. Creates the simulator.
-3. Randomly selects a starting city.
-4. Displays the initial state.
-5. Randomly selects a valid next city.
-6. Records every simulator transition.
-7. Closes the tour.
-8. Displays the final result.
-9. Animates the exact simulator trajectory.
+The visualization shows:
+
+1. Fixed city coordinates.
+2. Random starting city.
+3. Current city.
+4. Available next-city actions.
+5. Selected action.
+6. Route after the action.
+7. Distance added.
+8. Final return to the starting city.
+9. Complete tour and total distance.
 
 No optimization or RL agent is used yet.
-
-The random action policy is only a temporary demonstration
-of how an eventual RL agent will interact with the simulator.
 """
 
 from pathlib import Path
 import sys
-import random
 
 import matplotlib.pyplot as plt
+
+from IPython.display import HTML, display
 
 # --------------------------------------------------
 # Locate project root
 # --------------------------------------------------
 
-PROJECT_ROOT = (
-    Path(__file__).resolve().parents[1]
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(
-        0,
-        str(PROJECT_ROOT),
-    )
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 
 # --------------------------------------------------
 # Imports
@@ -48,7 +46,7 @@ from tsp.simulator import TSPSimulator
 from tsp.visualization import animate_simulation
 
 
-def main():
+def main() -> None:
 
     # --------------------------------------------------
     # 1. Locate instance
@@ -61,34 +59,19 @@ def main():
     )
 
     if not instance_path.exists():
-
         raise FileNotFoundError(
-            f"Could not find TSP instance:\n"
-            f"{instance_path}"
+            f"Could not find TSP instance:\n{instance_path}"
         )
 
     # --------------------------------------------------
-    # 2. Load fixed instance
+    # 2. Load fixed-city instance
     # --------------------------------------------------
 
-    instance = TSPInstance.from_json(
-        instance_path
-    )
+    instance = TSPInstance.from_json(instance_path)
 
-    print(
-        "Project root:",
-        PROJECT_ROOT,
-    )
-
-    print(
-        "Instance:",
-        instance.name,
-    )
-
-    print(
-        "Number of cities:",
-        instance.num_cities,
-    )
+    print("Project root:", PROJECT_ROOT)
+    print("Instance:", instance.name)
+    print("Number of cities:", instance.num_cities)
 
     print("\nCoordinates:")
     print(instance.coordinates)
@@ -96,25 +79,13 @@ def main():
     # --------------------------------------------------
     # 3. Create simulator
     # --------------------------------------------------
-    #
-    # No seed is supplied here.
-    #
-    # Therefore the starting city is randomly selected
-    # every time this script is executed.
-    #
-    # --------------------------------------------------
 
-    simulator = TSPSimulator(
-        instance
-    )
+    # No fixed seed is supplied.
+    #
+    # Therefore every fresh simulator instance can select
+    # a different starting city.
 
-    # Separate random generator for the temporary
-    # demonstration policy.
-    #
-    # IMPORTANT:
-    # This is NOT an RL agent.
-    #
-    action_rng = random.Random()
+    simulator = TSPSimulator(instance)
 
     # --------------------------------------------------
     # 4. Initial state
@@ -125,25 +96,10 @@ def main():
     print("\nInitial state")
     print("-------------")
 
-    print(
-        "Start city:",
-        state["start_city"],
-    )
-
-    print(
-        "Current city:",
-        state["current_city"],
-    )
-
-    print(
-        "Visited:",
-        state["visited"],
-    )
-
-    print(
-        "Available actions:",
-        state["available_actions"],
-    )
+    print("Start city:", state["start_city"])
+    print("Current city:", state["current_city"])
+    print("Visited:", state["visited"])
+    print("Available actions:", state["available_actions"])
 
     # --------------------------------------------------
     # 5. Execute simulator actions
@@ -156,50 +112,37 @@ def main():
 
         state = simulator.state()
 
-        available_actions = (
-            state["available_actions"]
-        )
+        available_actions = state["available_actions"]
 
-        # No unvisited cities remain.
+        # All cities have been visited.
         if not available_actions:
             break
 
-        current_city = (
-            state["current_city"]
-        )
+        current_city = state["current_city"]
 
         # --------------------------------------------------
-        # TEMPORARY ACTION POLICY
-        # --------------------------------------------------
+        # Temporary action-selection policy.
         #
-        # Randomly select one valid city.
+        # This is NOT RL.
         #
-        # Later this becomes:
+        # We simply select the first valid action so that
+        # the simulator interface can be demonstrated.
+        #
+        # Later this becomes something like:
         #
         # selected_action = agent.select_action(state)
         #
-        # The simulator itself does not care whether
-        # the action came from random selection, a
-        # heuristic, or an RL agent.
         # --------------------------------------------------
 
-        selected_action = (
-            action_rng.choice(
-                available_actions
-            )
-        )
+        selected_action = available_actions[0]
 
         print(
             f"Current city: {current_city} | "
-            f"Available actions: "
-            f"{available_actions} | "
-            f"Selected action: "
-            f"{selected_action}"
+            f"Available actions: {available_actions} | "
+            f"Selected action: {selected_action}"
         )
 
-        simulator.step(
-            selected_action
-        )
+        simulator.step(selected_action)
 
     # --------------------------------------------------
     # 6. Close tour
@@ -214,39 +157,13 @@ def main():
     print("\nFinal result")
     print("------------")
 
-    print(
-        "Start city:",
-        simulator.start_city,
-    )
-
-    print(
-        "Tour:",
-        simulator.tour,
-    )
-
-    print(
-        "Closed:",
-        simulator.done,
-    )
-
-    print(
-        "Total distance:",
-        simulator.total_distance,
-    )
+    print("Start city:", simulator.start_city)
+    print("Tour:", simulator.tour)
+    print("Closed:", simulator.done)
+    print("Total distance:", simulator.total_distance)
 
     # --------------------------------------------------
-    # 8. Create animation
-    # --------------------------------------------------
-    #
-    # IMPORTANT:
-    #
-    # animate_simulation DOES NOT make new decisions.
-    #
-    # It reads simulator.trajectory(), which contains
-    # exactly the actions that were already executed.
-    #
-    # Therefore the animation and printed simulation
-    # are guaranteed to describe the same trajectory.
+    # 8. Create animation from the EXACT trajectory
     # --------------------------------------------------
 
     animation = animate_simulation(
@@ -256,23 +173,19 @@ def main():
     )
 
     # --------------------------------------------------
-    # 9. Display animation in Jupyter / Colab
+    # 9. Render animation in Jupyter / Colab
     # --------------------------------------------------
 
-    try:
+    print("\nRendering simulation animation...")
 
-        from IPython.display import HTML, display
+    html = animation.to_jshtml()
 
-        display(
-            HTML(
-                animation.to_jshtml()
-            )
-        )
+    display(HTML(html))
 
-    except ImportError:
-
-        plt.show()
+    # Keep a reference alive until rendering is complete.
+    return animation
 
 
 if __name__ == "__main__":
     main()
+```
