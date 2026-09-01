@@ -1,7 +1,6 @@
 ```python
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from tsp.instance import TSPInstance
@@ -23,7 +22,7 @@ def instance():
 
 @pytest.fixture
 def simulator(instance):
-    """Create a simulator with a deterministic starting city."""
+    """Create a TSP simulator."""
     return TSPSimulator(instance)
 
 
@@ -178,6 +177,16 @@ def test_available_actions_empty_after_all_cities_visited(simulator):
         simulator.step(simulator.available_actions()[0])
 
     assert simulator.available_actions() == []
+
+
+def test_state_contains_available_actions(simulator):
+    """State should expose the currently valid next actions."""
+    simulator.reset(seed=42)
+
+    state = simulator.state()
+
+    assert "available_actions" in state
+    assert state["available_actions"] == simulator.available_actions()
 
 
 def test_invalid_city_index_is_rejected(simulator):
