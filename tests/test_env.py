@@ -4,6 +4,7 @@ import pytest
 
 from tsp.env import TSPEnv
 from tsp.instance import TSPInstance
+from tsp.simulator import TSPSimulator
 
 
 @pytest.fixture
@@ -102,4 +103,19 @@ def test_seed_reproducibility(env):
     _, info2 = env.reset(seed=123)
 
     assert info1["start_city"] == info2["start_city"]
+    
+def test_environment_owns_simulator(env):
+    assert isinstance(env.simulator, TSPSimulator)
+    assert env.simulator.instance is env.instance
+    
+def test_env_uses_same_simulator(env):
+    _, info = env.reset(seed=42)
 
+    action = info["available_actions"][0]
+    obs, _, _, _, info = env.step(action)
+
+    state = env.simulator.state()
+
+    assert info["tour"] == state["tour"]
+    assert obs["current_city"] == state["current_city"]
+    assert np.isclose(obs["total_cost"][0], state["total_cost"])    
