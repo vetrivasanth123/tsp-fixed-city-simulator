@@ -45,16 +45,15 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
     return ax
 
 
-def save_simulation(simulator, project_root):
+def save_simulation(simulator, project_root, rewards):
     path = Path(project_root) / ".simulation.json"
-    
-    
+
     actions = simulator.tour[1:]
     step_costs = [
         simulator.instance.cost(a, b)
         for a, b in zip(simulator.tour[:-1], simulator.tour[1:])
     ]
-    
+
     if simulator.done and len(simulator.tour) > 1:
         step_costs.append(
             simulator.instance.cost(
@@ -62,16 +61,18 @@ def save_simulation(simulator, project_root):
                 simulator.start_city,
             )
         )
-    
+
     data = {
         "instance": simulator.instance.name,
         "start_city": simulator.start_city,
         "actions": actions,
         "step_costs": step_costs,
+        "rewards": [float(reward) for reward in rewards],
         "tour": simulator.tour + [simulator.start_city],
         "total_cost": simulator.total_cost,
+        "total_reward": float(sum(rewards)),
     }
-    
+
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     
 
