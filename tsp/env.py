@@ -4,29 +4,19 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
-from .instance import TSPInstance
 from .simulator import TSPSimulator
 
 
 class TSPEnv(gym.Env):
-    """Gymnasium interface for TSP simulator."""
+    """Gymnasium interface around an existing TSP simulator."""
 
     metadata = {"render_modes": []}
 
-    def __init__(
-        self,
-        source: TSPInstance | TSPSimulator,
-        seed: int | None = None,
-    ):
+    def __init__(self, simulator: TSPSimulator):
         super().__init__()
 
-        if isinstance(source, TSPSimulator):
-            self.simulator = source
-            self.instance = source.instance
-        else:
-            self.instance = source
-            self.simulator = TSPSimulator(source, seed=seed)
-
+        self.simulator = simulator
+        self.instance = simulator.instance
         n = self.instance.num_cities
 
         self.action_space = spaces.Discrete(n)
@@ -51,21 +41,18 @@ class TSPEnv(gym.Env):
         action = int(action)
 
         if action not in self.simulator.available_actions():
-            raise ValueError(
-                f"Invalid action {action}. "
-                f"Available actions: {self.simulator.available_actions()}"
-            )
+            raise ValueError(f"Invalid action: {action}")
 
-        previous = self.simulator.total_cost
+        previous_cost = self.simulator.total_cost
         state = self.simulator.step(action)
-        reward = -(self.simulator.total_cost - previous)
 
+        reward = -(self.simulator.total_cost - previous_cost)
         terminated = False
 
         if not self.simulator.available_actions():
-            previous = self.simulator.total_cost
+            previous_cost = self.simulator.total_cost
             state = self.simulator.close_tour()
-            reward -= self.simulator.total_cost - previous
+            reward -= self.simulator.total_cost - previous_cost
             terminated = True
 
         return (
@@ -81,7 +68,7 @@ class TSPEnv(gym.Env):
         mask[state["visited"]] = 1
 
         return {
-            "current_city": int(state["current_city"]),
+            "current_city": state["current_city"],
             "visited_mask": mask,
             "total_cost": np.array(
                 [state["total_cost"]], dtype=np.float32
@@ -91,8 +78,8 @@ class TSPEnv(gym.Env):
     def _info(self, state):
         return {
             "tour": list(state["tour"]),
-            "start_city": int(state["start_city"]),
-            "current_city": int(state["current_city"]),
+            "start_city": state["start_city"],
+            "current_city": state["current_city"],
             "available_actions": list(state["available_actions"]),
             "total_cost": float(state["total_cost"]),
         }
