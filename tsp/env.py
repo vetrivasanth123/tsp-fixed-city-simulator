@@ -47,13 +47,19 @@ class TSPEnv(gym.Env):
     
         previous_cost = self.simulator.total_cost
         state = self.simulator.step(action)
-    
         reward = -(self.simulator.total_cost - previous_cost)
+        terminated = False
+    
+        if not self.simulator.available_actions():
+            previous_cost = self.simulator.total_cost
+            state = self.simulator.close_tour()
+            reward -= self.simulator.total_cost - previous_cost
+            terminated = True
     
         return (
             self._observation(state),
             float(reward),
-            False,
+            terminated,
             False,
             self._info(state),
         )
