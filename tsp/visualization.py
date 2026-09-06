@@ -13,7 +13,7 @@ def plot_cities(instance, ax=None):
     if ax is None:
         _, ax = plt.subplots()
     
-    ```
+    
     xy = np.asarray(instance.coordinates, dtype=float)
     ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
     
@@ -26,12 +26,12 @@ def plot_cities(instance, ax=None):
     ax.grid(True, alpha=0.3)
     
     return ax
-```
+
 
 def plot_tour(instance, tour, ax=None, title="TSP Tour"):
     tour = list(tour)
     
-    ```
+    
     if len(tour) != instance.num_cities:
         raise ValueError("Tour must contain every city exactly once.")
     
@@ -43,12 +43,12 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
     ax.set_title(f"{title} — Cost: {tour_cost(tour, instance):.4f}")
     
     return ax
-```
+
 
 def save_simulation(simulator, project_root):
     path = Path(project_root) / ".simulation.json"
     
-    ```
+    
     actions = simulator.tour[1:]
     step_costs = [
         simulator.instance.cost(a, b)
@@ -73,22 +73,22 @@ def save_simulation(simulator, project_root):
     }
     
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    ```
+    
 
 def load_saved_simulation(project_root):
     path = Path(project_root) / ".simulation.json"
     
-    ```
+    
     if not path.exists():
         return None
     
     return json.loads(path.read_text(encoding="utf-8"))
-    ```
+    
     
     def animate_simulation(instance, actions, start_city, interval=900):
     xy = np.asarray(instance.coordinates, dtype=float)
     
-    ```
+    
     fig, ax = plt.subplots(figsize=(8, 6))
     plot_cities(instance, ax)
     
@@ -165,4 +165,4 @@ animation = FuncAnimation(
 )
 
 return fig, animation
-```
+
