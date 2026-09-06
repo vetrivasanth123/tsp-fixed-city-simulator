@@ -11,7 +11,7 @@ from .utils import tour_cost
 
 def plot_cities(instance, ax=None):
     if ax is None:
-    _, ax = plt.subplots()
+        _, ax = plt.subplots()
     
     ```
     xy = np.asarray(instance.coordinates, dtype=float)
