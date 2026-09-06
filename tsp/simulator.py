@@ -92,7 +92,8 @@ class TSPSimulator:
                 self.current_city,
                 self.start_city,
             )
-
+            self.current_city = self.start_city
+        
         self.done = True
 
         return self.state()
