@@ -1,3 +1,4 @@
+
 from pathlib import Path
 import random
 import sys
@@ -6,7 +7,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from tsp.instance import TSPInstance
-from tsp.simulator import TSPSimulator
 from tsp.env import TSPEnv
 
 
@@ -39,11 +39,8 @@ def choose_instance():
 def main():
     instance = choose_instance()
 
-    # ONE simulator
-    simulator = TSPSimulator(instance)
-
-    # Gym uses the SAME simulator
-    env = TSPEnv(simulator)
+    # Environment creates and owns the simulator.
+    env = TSPEnv(instance)
 
     _, info = env.reset()
     rng = random.Random()
@@ -72,6 +69,7 @@ def main():
 
     while info["available_actions"]:
         action = rng.choice(info["available_actions"])
+
         _, reward, terminated, truncated, info = env.step(action)
         total_reward += reward
 
@@ -81,6 +79,7 @@ def main():
             f"Selected action: {action}"
         )
 
+    simulator = env.simulator
     closed_tour = simulator.tour + [simulator.start_city]
 
     print("\nFinal result")
@@ -94,3 +93,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
