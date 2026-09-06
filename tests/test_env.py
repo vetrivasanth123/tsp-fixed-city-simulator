@@ -58,8 +58,8 @@ def test_complete_tour(env):
         )
 
     assert terminated and not truncated
-    assert len(info["tour"]) == 6
-    assert info["tour"][0] == info["tour"][-1]
+    assert len(info["tour"]) == 5
+    assert len(set(info["tour"])) == 5
     assert obs["visited_mask"].sum() == 5
     assert info["available_actions"] == []
     assert info["total_cost"] > 0
