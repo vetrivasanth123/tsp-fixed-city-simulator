@@ -159,3 +159,34 @@ def animate_simulation(instance, actions, start_city, interval=900):
 
     return fig, animation
 
+    def create_live_visualization(instance, start_city):
+        fig, ax = plt.subplots(figsize=(8, 6))
+        plot_cities(instance, ax)
+    
+        xy = np.asarray(instance.coordinates, dtype=float)
+        ax.scatter(*xy[start_city], s=220, facecolors="none",
+                   linewidths=3, zorder=5)
+    
+        line, = ax.plot([], [], marker="o", linewidth=2.5)
+        current, = ax.plot([], [], "o", markersize=14, zorder=6)
+        status = ax.text(0.02, 0.97, "", transform=ax.transAxes, va="top")
+    
+        return fig, ax, line, current, status
+    
+
+    def update_live_visualization(instance, simulator, line, current, status):
+        xy = np.asarray(instance.coordinates, dtype=float)
+        route = simulator.tour + ([simulator.start_city] if simulator.done else [])
+    
+        points = xy[route]
+        line.set_data(points[:, 0], points[:, 1])
+    
+        city = simulator.current_city
+        current.set_data([xy[city, 0]], [xy[city, 1]])
+    
+        status.set_text(
+            f"Current city: {city} | Cost: {simulator.total_cost:.4f}"
+            + (" | Complete" if simulator.done else "")
+        )
+    
+        line.figure.canvas.draw()
