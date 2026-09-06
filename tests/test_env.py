@@ -1,16 +1,15 @@
+
 import numpy as np
 import pytest
 
 from tsp.env import TSPEnv
 from tsp.instance import TSPInstance
-from tsp.simulator import TSPSimulator
 
 
 @pytest.fixture
 def env():
     instance = TSPInstance.from_json("instances/five_cities.json")
-    simulator = TSPSimulator(instance, seed=42)
-    return TSPEnv(simulator)
+    return TSPEnv(instance, seed=42)
 
 
 def test_reset(env):
@@ -103,3 +102,4 @@ def test_seed_reproducibility(env):
     _, info2 = env.reset(seed=123)
 
     assert info1["start_city"] == info2["start_city"]
+
