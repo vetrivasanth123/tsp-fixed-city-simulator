@@ -1,96 +1,93 @@
-
 from pathlib import Path
 import random
 import sys
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(**file**).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from tsp.instance import TSPInstance
 from tsp.env import TSPEnv
-
+import tsp.visualization as visualization
 
 def choose_instance():
-    print("\nSelect cost model")
-    print("-----------------")
-    print("1. Euclidean cost")
-    print("2. Custom cost matrix")
-    print("3. Exit")
+print("\nSelect cost model")
+print("-----------------")
+print("1. Euclidean cost")
+print("2. Custom cost matrix")
+print("3. Exit")
 
-    while True:
-        choice = input("\nEnter your choice (1/2/3): ").strip()
+```
+while True:
+    choice = input("\nEnter your choice (1/2/3): ").strip()
 
-        if choice == "1":
-            return TSPInstance.from_json(
-                PROJECT_ROOT / "instances/five_cities.json"
-            )
+    if choice == "1":
+        return TSPInstance.from_json(
+            PROJECT_ROOT / "instances/five_cities.json"
+        )
+    if choice == "2":
+        return TSPInstance.from_json(
+            PROJECT_ROOT / "instances/five_cities_custom_cost.json"
+        )
+    if choice == "3":
+        sys.exit(0)
 
-        if choice == "2":
-            return TSPInstance.from_json(
-                PROJECT_ROOT / "instances/five_cities_custom_cost.json"
-            )
-
-        if choice == "3":
-            sys.exit(0)
-
-        print("Invalid choice.")
-
+    print("Invalid choice.")
+```
 
 def main():
-    instance = choose_instance()
+instance = choose_instance()
+env = TSPEnv(instance)
+_, info = env.reset()
+rng = random.Random()
 
-    # Environment creates and owns the simulator.
-    env = TSPEnv(instance)
+```
+print("\nProject root:", PROJECT_ROOT)
+print("Instance:", instance.name)
+print("Number of cities:", instance.num_cities)
 
-    _, info = env.reset()
-    rng = random.Random()
+print("\nCoordinates:")
+print(instance.coordinates)
 
-    print("\nProject root:", PROJECT_ROOT)
-    print("Instance:", instance.name)
-    print("Number of cities:", instance.num_cities)
+print("\nCost matrix:")
+print(instance.cost_matrix)
 
-    print("\nCoordinates:")
-    print(instance.coordinates)
+print("\nInitial state")
+print("-------------")
+print("Start city:", info["start_city"])
+print("Current city:", info["current_city"])
+print("Visited:", info["tour"])
+print("Available actions:", info["available_actions"])
 
-    print("\nCost matrix:")
-    print(instance.cost_matrix)
+total_reward = 0.0
 
-    print("\nInitial state")
-    print("-------------")
-    print("Start city:", info["start_city"])
-    print("Current city:", info["current_city"])
-    print("Visited:", info["tour"])
-    print("Available actions:", info["available_actions"])
+print("\nAction sequence")
+print("---------------")
 
-    total_reward = 0.0
+while info["available_actions"]:
+    action = rng.choice(info["available_actions"])
+    _, reward, _, _, info = env.step(action)
+    total_reward += reward
 
-    print("\nAction sequence")
-    print("---------------")
+    print(
+        f"Current city: {info['current_city']} | "
+        f"Available actions: {info['available_actions']} | "
+        f"Selected action: {action}"
+    )
 
-    while info["available_actions"]:
-        action = rng.choice(info["available_actions"])
+simulator = env.simulator
+closed_tour = simulator.tour + [simulator.start_city]
 
-        _, reward, terminated, truncated, info = env.step(action)
-        total_reward += reward
+print("\nFinal result")
+print("------------")
+print("Start city:", simulator.start_city)
+print("Tour:", closed_tour)
+print("Closed:", simulator.done)
+print("Total cost:", simulator.total_cost)
+print("Total reward:", total_reward)
 
-        print(
-            f"Current city: {info['current_city']} | "
-            f"Available actions: {info['available_actions']} | "
-            f"Selected action: {action}"
-        )
+visualization.save_simulation(simulator, PROJECT_ROOT)
+print("Saved episode:", PROJECT_ROOT / ".simulation.json")
+```
 
-    simulator = env.simulator
-    closed_tour = simulator.tour + [simulator.start_city]
-
-    print("\nFinal result")
-    print("------------")
-    print("Start city:", simulator.start_city)
-    print("Tour:", closed_tour)
-    print("Closed:", simulator.done)
-    print("Total cost:", simulator.total_cost)
-    print("Total reward:", total_reward)
-
-
-if __name__ == "__main__":
-    main()
-
+if **name** == "**main**":
+main()
