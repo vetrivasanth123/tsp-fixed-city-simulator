@@ -60,7 +60,7 @@ def main():
     print("Visited:", info["tour"])
     print("Available actions:", info["available_actions"])
 
-    total_reward = 0.0
+    rewards = []
 
     print("\nAction sequence")
     print("---------------")
@@ -68,7 +68,7 @@ def main():
     while info["available_actions"]:
         action = rng.choice(info["available_actions"])
         _, reward, terminated, truncated, info = env.step(action)
-        total_reward += reward
+        rewards.append(reward)
 
         print(
             f"Current city: {info['current_city']} | "
@@ -87,9 +87,12 @@ def main():
     print("Total cost:", simulator.total_cost)
     print("Total reward:", total_reward)
 
-    visualization.save_simulation(simulator, PROJECT_ROOT)
-
-    print("Saved episode:", PROJECT_ROOT / ".simulation.json")
+    visualization.save_simulation(
+    env.simulator,
+    PROJECT_ROOT,
+    rewards,
+    )
+    print("Total reward:", sum(rewards))
 
 
 if __name__ == "__main__":
