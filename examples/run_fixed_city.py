@@ -20,9 +20,15 @@ def choose_instance():
     while True:
         choice = input("\nEnter your choice (1/2/3): ").strip()
 
-        if choice in ("1", "2"):
-            file = "five_cities.json" if choice == "1" else "five_cities_custom_cost.json"
-            return TSPInstance.from_json(PROJECT_ROOT / "instances" / file)
+        if choice == "1":
+            return TSPInstance.from_json(
+                PROJECT_ROOT / "instances/five_cities.json"
+            )
+
+        if choice == "2":
+            return TSPInstance.from_json(
+                PROJECT_ROOT / "instances/five_cities_custom_cost.json"
+            )
 
         if choice == "3":
             sys.exit(0)
@@ -32,17 +38,31 @@ def choose_instance():
 
 def main():
     instance = choose_instance()
-    simulator = TSPSimulator(instance, seed=42)
+
+    # ONE simulator
+    simulator = TSPSimulator(instance)
+
+    # Gym uses the SAME simulator
     env = TSPEnv(simulator)
 
-    obs, info = env.reset(seed=42)
-    rng = random.Random(42)
+    _, info = env.reset()
+    rng = random.Random()
 
-    print("\nInstance:", instance.name)
-    print("Cost matrix:\n", instance.cost_matrix)
+    print("\nProject root:", PROJECT_ROOT)
+    print("Instance:", instance.name)
+    print("Number of cities:", instance.num_cities)
+
+    print("\nCoordinates:")
+    print(instance.coordinates)
+
+    print("\nCost matrix:")
+    print(instance.cost_matrix)
 
     print("\nInitial state")
+    print("-------------")
     print("Start city:", info["start_city"])
+    print("Current city:", info["current_city"])
+    print("Visited:", info["tour"])
     print("Available actions:", info["available_actions"])
 
     total_reward = 0.0
@@ -50,24 +70,26 @@ def main():
     print("\nAction sequence")
     print("---------------")
 
-    while not simulator.done:
+    while info["available_actions"]:
         action = rng.choice(info["available_actions"])
-
-        obs, reward, terminated, truncated, info = env.step(action)
+        _, reward, terminated, truncated, info = env.step(action)
         total_reward += reward
 
         print(
-            f"Selected: {action} | "
-            f"Current: {info['current_city']} | "
-            f"Reward: {reward:.4f}"
+            f"Current city: {info['current_city']} | "
+            f"Available actions: {info['available_actions']} | "
+            f"Selected action: {action}"
         )
+
+    closed_tour = simulator.tour + [simulator.start_city]
 
     print("\nFinal result")
     print("------------")
-    print("Tour:", info["tour"])
-    print("Total cost:", info["total_cost"])
+    print("Start city:", simulator.start_city)
+    print("Tour:", closed_tour)
+    print("Closed:", simulator.done)
+    print("Total cost:", simulator.total_cost)
     print("Total reward:", total_reward)
-    print("Terminated:", terminated)
 
 
 if __name__ == "__main__":
