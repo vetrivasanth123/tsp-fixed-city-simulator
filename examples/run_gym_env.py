@@ -13,10 +13,34 @@ from tsp.visualization import create_live_visualization, update_live_visualizati
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    instance = TSPInstance.from_json(root / "instances/five_cities.json")
-    env = TSPEnv(instance, seed=42)
 
+    print("Select cost model")
+    print("-----------------")
+    print("1. Euclidean cost")
+    print("2. Custom cost matrix")
+    print("3. Exit")
+
+    choice = input("\nEnter your choice (1/2/3): ").strip()
+
+    if choice == "3":
+        return
+    if choice not in {"1", "2"}:
+        print("Invalid choice.")
+        return
+
+    filename = (
+        "five_cities.json"
+        if choice == "1"
+        else "five_cities_custom_cost.json"
+    )
+
+    instance = TSPInstance.from_json(root / "instances" / filename)
+    env = TSPEnv(instance, seed=42)
     _, info = env.reset(seed=42)
+
+    print(f"\nInstance: {instance.name}")
+    print(f"Number of cities: {instance.num_cities}")
+    print(f"Start city: {info['start_city']}")
 
     frames = root / "frames"
     frames.mkdir(exist_ok=True)
@@ -30,7 +54,7 @@ def main():
 
     while not env.simulator.done:
         action = random.choice(info["available_actions"])
-        _, reward, terminated, truncated, info = env.step(action)
+        _, reward, _, _, info = env.step(action)
 
         frame += 1
         update_live_visualization(
@@ -39,8 +63,7 @@ def main():
         fig.savefig(frames / f"frame_{frame:03d}.png")
 
         print(
-            f"Action: {action} | "
-            f"Current: {info['current_city']} | "
+            f"Action: {action} | Current: {info['current_city']} | "
             f"Reward: {reward:.4f}"
         )
 
