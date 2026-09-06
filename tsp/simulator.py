@@ -74,27 +74,27 @@ class TSPSimulator:
         return self.state()
 
     def close_tour(self) -> dict[str, Any]:
-    """Return to the starting city and complete the tour."""
+        """Return to the starting city and complete the tour."""
 
         if not self.tour:
             raise ValueError("Cannot close an empty tour.")
-    
+
         if self.done:
             return self.state()
-    
+
         if self.available_actions():
             raise RuntimeError(
                 "Cannot close the tour while valid actions remain."
             )
-    
+
         if len(self.tour) > 1:
             self.total_cost += self.instance.cost(
                 self.current_city,
                 self.start_city,
             )
-    
+
         self.done = True
-    
+
         return self.state()
 
     def state(self) -> dict[str, Any]:
