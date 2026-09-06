@@ -92,7 +92,7 @@ def main():
     PROJECT_ROOT,
     rewards,
     )
-    print("Total reward:", sum(rewards))
+    
 
 
 if __name__ == "__main__":
