@@ -7,8 +7,10 @@ from tsp.instance import TSPInstance
 
 @pytest.fixture
 def env():
-    instance = TSPInstance.from_json("instances/five_cities.json")
-    return TSPEnv(instance, seed=42)
+    return TSPEnv(
+        TSPInstance.from_json("instances/five_cities.json"),
+        seed=42,
+    )
 
 
 def test_reset(env):
@@ -37,6 +39,23 @@ def test_step(env):
     assert obs["visited_mask"].sum() == 2
 
 
+def test_state_continuity(env):
+    obs, info = env.reset(seed=42)
+
+    for _ in range(3):
+        action = info["available_actions"][0]
+        obs, _, _, _, info = env.step(action)
+        state = env.simulator.state()
+
+        assert info["tour"] == state["tour"]
+        assert info["current_city"] == state["current_city"]
+        assert info["start_city"] == state["start_city"]
+        assert info["available_actions"] == state["available_actions"]
+        assert np.isclose(info["total_cost"], state["total_cost"])
+        assert obs["current_city"] == state["current_city"]
+        assert np.isclose(obs["total_cost"][0], state["total_cost"])
+
+
 def test_invalid_action(env):
     env.reset(seed=42)
     with pytest.raises(ValueError):
@@ -53,7 +72,7 @@ def test_complete_tour(env):
     obs, info = env.reset(seed=42)
 
     while info["available_actions"]:
-        obs, reward, terminated, truncated, info = env.step(
+        obs, _, terminated, truncated, info = env.step(
             info["available_actions"][0]
         )
 
