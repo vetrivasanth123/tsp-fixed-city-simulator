@@ -92,7 +92,7 @@ def main():
     PROJECT_ROOT,
     rewards,
     )
-    
+    print("\nSimulation saved:", PROJECT_ROOT / ".simulation.json")
 
 
 if __name__ == "__main__":
