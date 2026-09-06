@@ -41,25 +41,19 @@ class TSPEnv(gym.Env):
 
     def step(self, action):
         action = int(action)
-
+    
         if action not in self.simulator.available_actions():
             raise ValueError(f"Invalid action: {action}")
-
+    
         previous_cost = self.simulator.total_cost
         state = self.simulator.step(action)
+    
         reward = -(self.simulator.total_cost - previous_cost)
-        terminated = False
-
-        if not self.simulator.available_actions():
-            previous_cost = self.simulator.total_cost
-            state = self.simulator.close_tour()
-            reward -= self.simulator.total_cost - previous_cost
-            terminated = True
-
+    
         return (
             self._observation(state),
             float(reward),
-            terminated,
+            False,
             False,
             self._info(state),
         )
