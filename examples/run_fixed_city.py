@@ -85,7 +85,7 @@ def main():
     print("Tour:", closed_tour)
     print("Closed:", simulator.done)
     print("Total cost:", simulator.total_cost)
-    print("Total reward:", total_reward)
+    print("Total reward:", sum(rewards))
 
     visualization.save_simulation(
     env.simulator,
