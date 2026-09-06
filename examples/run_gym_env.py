@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from tsp.env import TSPEnv
 from tsp.instance import TSPInstance
 
@@ -6,12 +11,11 @@ def main():
     instance = TSPInstance.from_json("instances/five_cities.json")
     env = TSPEnv(instance, seed=42)
 
-    obs, info = env.reset(seed=42)
+    _, info = env.reset(seed=42)
 
     print("Initial state")
     print("------------")
     print(f"Start city: {info['start_city']}")
-    print(f"Current city: {info['current_city']}")
     print(f"Available actions: {info['available_actions']}")
 
     total_reward = 0.0
@@ -19,10 +23,9 @@ def main():
     print("\nAction sequence")
     print("---------------")
 
-    while not (env.simulator.done):
+    while info["available_actions"]:
         action = info["available_actions"][0]
-
-        obs, reward, terminated, truncated, info = env.step(action)
+        _, reward, terminated, truncated, info = env.step(action)
         total_reward += reward
 
         print(
