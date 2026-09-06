@@ -4,19 +4,29 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
+from .instance import TSPInstance
 from .simulator import TSPSimulator
 
 
 class TSPEnv(gym.Env):
-    """Gymnasium interface for an existing TSP simulator."""
+    """Gymnasium interface for TSP simulator."""
 
     metadata = {"render_modes": []}
 
-    def __init__(self, simulator: TSPSimulator):
+    def __init__(
+        self,
+        source: TSPInstance | TSPSimulator,
+        seed: int | None = None,
+    ):
         super().__init__()
 
-        self.simulator = simulator
-        self.instance = simulator.instance
+        if isinstance(source, TSPSimulator):
+            self.simulator = source
+            self.instance = source.instance
+        else:
+            self.instance = source
+            self.simulator = TSPSimulator(source, seed=seed)
+
         n = self.instance.num_cities
 
         self.action_space = spaces.Discrete(n)
@@ -24,7 +34,7 @@ class TSPEnv(gym.Env):
             "current_city": spaces.Discrete(n),
             "visited_mask": spaces.MultiBinary(n),
             "total_cost": spaces.Box(
-                low=0.0, high=np.inf, shape=(1,), dtype=np.float32
+                0.0, np.inf, shape=(1,), dtype=np.float32
             ),
         })
 
@@ -46,15 +56,16 @@ class TSPEnv(gym.Env):
                 f"Available actions: {self.simulator.available_actions()}"
             )
 
-        previous_cost = self.simulator.total_cost
+        previous = self.simulator.total_cost
         state = self.simulator.step(action)
-        reward = -(self.simulator.total_cost - previous_cost)
+        reward = -(self.simulator.total_cost - previous)
 
         terminated = False
+
         if not self.simulator.available_actions():
-            previous_cost = self.simulator.total_cost
+            previous = self.simulator.total_cost
             state = self.simulator.close_tour()
-            reward -= self.simulator.total_cost - previous_cost
+            reward -= self.simulator.total_cost - previous
             terminated = True
 
         return (
@@ -72,7 +83,9 @@ class TSPEnv(gym.Env):
         return {
             "current_city": int(state["current_city"]),
             "visited_mask": mask,
-            "total_cost": np.array([state["total_cost"]], dtype=np.float32),
+            "total_cost": np.array(
+                [state["total_cost"]], dtype=np.float32
+            ),
         }
 
     def _info(self, state):
