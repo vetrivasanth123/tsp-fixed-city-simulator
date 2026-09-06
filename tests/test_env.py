@@ -104,9 +104,17 @@ def test_reward_matches_tour_cost(env):
     total_reward = 0.0
 
     while info["available_actions"]:
-        _, reward, _, _, info = env.step(info["available_actions"][0])
+        _, reward, _, _, info = env.step(
+            info["available_actions"][0]
+        )
         total_reward += reward
 
+    _, reward, terminated, truncated, info = env.step(
+        env.close_action
+    )
+    total_reward += reward
+
+    assert terminated and not truncated
     assert np.isclose(-total_reward, info["total_cost"])
 
 
