@@ -3,18 +3,19 @@ import pytest
 
 from tsp.env import TSPEnv
 from tsp.instance import TSPInstance
+from tsp.simulator import TSPSimulator
 
 
 @pytest.fixture
 def env():
-    return TSPEnv(
-        TSPInstance.from_json("instances/five_cities.json"),
-        seed=42,
-    )
+    instance = TSPInstance.from_json("instances/five_cities.json")
+    simulator = TSPSimulator(instance, seed=42)
+    return TSPEnv(simulator)
 
 
 def test_reset(env):
     obs, info = env.reset(seed=42)
+
     assert env.observation_space.contains(obs)
     assert obs["visited_mask"].sum() == 1
     assert obs["current_city"] == info["current_city"]
@@ -58,12 +59,14 @@ def test_state_continuity(env):
 
 def test_invalid_action(env):
     env.reset(seed=42)
+
     with pytest.raises(ValueError):
         env.step(env.simulator.current_city)
 
 
 def test_invalid_action_range(env):
     env.reset(seed=42)
+
     with pytest.raises(ValueError):
         env.step(10)
 
@@ -80,7 +83,7 @@ def test_complete_tour(env):
     assert len(info["tour"]) == 5
     assert len(set(info["tour"])) == 5
     assert obs["visited_mask"].sum() == 5
-    assert info["available_actions"] == []
+    assert not info["available_actions"]
     assert info["total_cost"] > 0
 
 
@@ -89,9 +92,7 @@ def test_reward_matches_tour_cost(env):
     total_reward = 0.0
 
     while info["available_actions"]:
-        _, reward, _, _, info = env.step(
-            info["available_actions"][0]
-        )
+        _, reward, _, _, info = env.step(info["available_actions"][0])
         total_reward += reward
 
     assert np.isclose(-total_reward, info["total_cost"])
