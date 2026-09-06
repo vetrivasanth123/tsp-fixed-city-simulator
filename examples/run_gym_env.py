@@ -8,63 +8,89 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tsp.env import TSPEnv
 from tsp.instance import TSPInstance
-from tsp.visualization import create_live_visualization, update_live_visualization
+from tsp.simulator import TSPSimulator
+from tsp.visualization import (
+    create_live_visualization,
+    update_live_visualization,
+)
 
 
-def main():
-    root = Path(__file__).resolve().parents[1]
-
-    print("Select cost model")
+def choose_instance(root):
+    print("\nSelect cost model")
     print("-----------------")
     print("1. Euclidean cost")
     print("2. Custom cost matrix")
     print("3. Exit")
 
-    choice = input("\nEnter your choice (1/2/3): ").strip()
+    while True:
+        choice = input("\nEnter your choice (1/2/3): ").strip()
 
-    if choice == "1":
-        file = root / "instances/five_cities.json"
-    elif choice == "2":
-        file = root / "instances/five_cities_custom_cost.json"
-    else:
-        return
+        if choice == "1":
+            return TSPInstance.from_json(
+                root / "instances/five_cities.json"
+            )
 
-    instance = TSPInstance.from_json(file)
-    env = TSPEnv(instance, seed=42)
-    _, info = env.reset(seed=42)
+        if choice == "2":
+            return TSPInstance.from_json(
+                root / "instances/five_cities_custom_cost.json"
+            )
+
+        if choice == "3":
+            sys.exit(0)
+
+        print("Invalid choice.")
+
+
+def main():
+    root = Path(__file__).resolve().parents[1]
+
+    # One instance
+    instance = choose_instance(root)
+
+    # One simulator
+    simulator = TSPSimulator(instance)
+
+    # Gym wraps the SAME simulator
+    env = TSPEnv(simulator)
+
+    # Start one episode
+    _, info = env.reset()
 
     print(f"\nInstance: {instance.name}")
-    print(f"Cost model: {'Custom' if choice == '2' else 'Euclidean'}")
     print(f"Start city: {info['start_city']}")
 
     frames = root / "frames"
     frames.mkdir(exist_ok=True)
 
     fig, _, line, current, status = create_live_visualization(
-        instance, info["start_city"]
+        instance, simulator.start_city
     )
 
     frame = 0
     fig.savefig(frames / f"frame_{frame:03d}.png")
 
-    while not env.simulator.done:
+    while info["available_actions"]:
         action = random.choice(info["available_actions"])
+
         _, reward, terminated, truncated, info = env.step(action)
 
         frame += 1
         update_live_visualization(
-            instance, env.simulator, line, current, status
+            instance, simulator, line, current, status
         )
         fig.savefig(frames / f"frame_{frame:03d}.png")
 
         print(
-            f"Action: {action} | Current: {info['current_city']} | "
+            f"Action: {action} | "
+            f"Current: {info['current_city']} | "
             f"Reward: {reward:.4f}"
         )
 
     print("\nFinal")
-    print(f"Tour: {info['tour'] + [info['start_city']]}")
-    print(f"Cost: {info['total_cost']:.6f}")
+    print("-----")
+    print(f"Tour: {simulator.tour + [simulator.start_city]}")
+    print(f"Closed: {simulator.done}")
+    print(f"Cost: {simulator.total_cost:.6f}")
     print(f"Frames: {frame + 1}")
 
     plt.show()
