@@ -22,24 +22,19 @@ def main():
 
     choice = input("\nEnter your choice (1/2/3): ").strip()
 
-    if choice == "3":
-        return
-    if choice not in {"1", "2"}:
-        print("Invalid choice.")
+    if choice == "1":
+        file = root / "instances/five_cities.json"
+    elif choice == "2":
+        file = root / "instances/five_cities_custom_cost.json"
+    else:
         return
 
-    filename = (
-        "five_cities.json"
-        if choice == "1"
-        else "five_cities_custom_cost.json"
-    )
-
-    instance = TSPInstance.from_json(root / "instances" / filename)
+    instance = TSPInstance.from_json(file)
     env = TSPEnv(instance, seed=42)
     _, info = env.reset(seed=42)
 
     print(f"\nInstance: {instance.name}")
-    print(f"Number of cities: {instance.num_cities}")
+    print(f"Cost model: {'Custom' if choice == '2' else 'Euclidean'}")
     print(f"Start city: {info['start_city']}")
 
     frames = root / "frames"
@@ -54,7 +49,7 @@ def main():
 
     while not env.simulator.done:
         action = random.choice(info["available_actions"])
-        _, reward, _, _, info = env.step(action)
+        _, reward, terminated, truncated, info = env.step(action)
 
         frame += 1
         update_live_visualization(
@@ -68,7 +63,7 @@ def main():
         )
 
     print("\nFinal")
-    print(f"Tour: {info['tour']}")
+    print(f"Tour: {info['tour'] + [info['start_city']]}")
     print(f"Cost: {info['total_cost']:.6f}")
     print(f"Frames: {frame + 1}")
 
