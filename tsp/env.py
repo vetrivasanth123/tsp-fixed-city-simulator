@@ -21,7 +21,8 @@ class TSPEnv(gym.Env):
 
         n = instance.num_cities
 
-        self.action_space = spaces.Discrete(n)
+        self.close_action = n
+        self.action_space = spaces.Discrete(n + 1)
         self.observation_space = spaces.Dict({
             "current_city": spaces.Discrete(n),
             "visited_mask": spaces.MultiBinary(n),
@@ -42,24 +43,33 @@ class TSPEnv(gym.Env):
     def step(self, action):
         action = int(action)
     
+        if action == self.close_action:
+            if self.simulator.available_actions():
+                raise ValueError("Cannot close the tour while valid actions remain.")
+    
+            previous_cost = self.simulator.total_cost
+            state = self.simulator.close_tour()
+            reward = -(self.simulator.total_cost - previous_cost)
+    
+            return (
+                self._observation(state),
+                float(reward),
+                True,
+                False,
+                self._info(state),
+            )
+    
         if action not in self.simulator.available_actions():
             raise ValueError(f"Invalid action: {action}")
     
         previous_cost = self.simulator.total_cost
         state = self.simulator.step(action)
         reward = -(self.simulator.total_cost - previous_cost)
-        terminated = False
-    
-        if not self.simulator.available_actions():
-            previous_cost = self.simulator.total_cost
-            state = self.simulator.close_tour()
-            reward -= self.simulator.total_cost - previous_cost
-            terminated = True
     
         return (
             self._observation(state),
             float(reward),
-            terminated,
+            False,
             False,
             self._info(state),
         )
