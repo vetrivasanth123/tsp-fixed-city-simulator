@@ -24,7 +24,8 @@ def test_reset(env):
 
 
 def test_action_space(env):
-    assert env.action_space.n == 5
+    assert env.action_space.n == 6
+    assert env.close_action == 5
 
 
 def test_step(env):
@@ -79,13 +80,24 @@ def test_complete_tour(env):
             info["available_actions"][0]
         )
 
-    assert terminated and not truncated
+    assert not terminated
+    assert not truncated
     assert len(info["tour"]) == 5
     assert len(set(info["tour"])) == 5
     assert obs["visited_mask"].sum() == 5
     assert not info["available_actions"]
-    assert info["total_cost"] > 0
 
+    obs, reward, terminated, truncated, info = env.step(
+        env.close_action
+    )
+
+    assert terminated and not truncated
+    assert reward < 0
+    assert len(info["tour"]) == 5
+    assert obs["visited_mask"].sum() == 5
+    assert not info["available_actions"]
+    assert info["total_cost"] > 0
+    assert info["current_city"] == info["start_city"]
 
 def test_reward_matches_tour_cost(env):
     _, info = env.reset(seed=42)
