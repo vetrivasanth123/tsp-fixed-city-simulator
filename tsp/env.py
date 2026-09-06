@@ -4,20 +4,22 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
+from .instance import TSPInstance
 from .simulator import TSPSimulator
 
 
 class TSPEnv(gym.Env):
-    """Gymnasium interface around an existing TSP simulator."""
+    """Gymnasium environment for TSP."""
 
     metadata = {"render_modes": []}
 
-    def __init__(self, simulator: TSPSimulator):
+    def __init__(self, instance: TSPInstance, seed: int | None = None):
         super().__init__()
 
-        self.simulator = simulator
-        self.instance = simulator.instance
-        n = self.instance.num_cities
+        self.instance = instance
+        self.simulator = TSPSimulator(instance, seed=seed)
+
+        n = instance.num_cities
 
         self.action_space = spaces.Discrete(n)
         self.observation_space = spaces.Dict({
@@ -45,7 +47,6 @@ class TSPEnv(gym.Env):
 
         previous_cost = self.simulator.total_cost
         state = self.simulator.step(action)
-
         reward = -(self.simulator.total_cost - previous_cost)
         terminated = False
 
