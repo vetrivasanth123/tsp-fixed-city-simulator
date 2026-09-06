@@ -125,8 +125,18 @@ def test_close_tour_returns_to_start(simulator):
         cost_before + final_edge
     )
     assert simulator.done is True
+    
 
+def test_close_tour_rejects_incomplete_tour(simulator):
+    next_city = simulator.available_actions()[0]
 
+    simulator.step(next_city)
+
+    with pytest.raises(RuntimeError):
+        simulator.close_tour()
+
+    assert simulator.done is False
+    
 def test_complete_five_city_tour(simulator):
     while len(simulator.tour) < simulator.instance.num_cities:
         simulator.step(simulator.available_actions()[0])
