@@ -85,7 +85,13 @@ def load_saved_simulation(project_root):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def animate_simulation(instance, actions, start_city, interval=900):
+def animate_simulation(
+    instance,
+    actions,
+    start_city,
+    rewards,
+    interval=900,
+    ):
     xy = np.asarray(instance.coordinates, dtype=float)
 
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -145,13 +151,24 @@ def animate_simulation(instance, actions, start_city, interval=900):
         current.set_data([xy[city, 0]], [xy[city, 1]])
 
         if frame == 0:
-            status.set_text(f"Start city: {start_city}")
+            status.set_text(
+                f"Start city: {start_city}\n"
+                f"Total cost: 0.0000\n"
+                f"Total reward: 0.0000"
+            )
         elif actions[frame - 1] == "CLOSE":
-            status.set_text("Tour complete")
+            status.set_text(
+                "Tour complete\n"
+                f"Total cost: {sum(instance.cost(a, b) for a, b in zip(route[:-1], route[1:])):.4f}\n"
+                f"Total reward: {sum(rewards):.4f}"
+            )
         else:
             status.set_text(
-                f"Current city: {city}   "
-                f"Next action: {actions[frame]}"
+                f"Current city: {city}\n"
+                f"Action: {actions[frame - 1]}\n"
+                f"Cost: {instance.cost(route[-2], city):.4f}\n"
+                f"Reward: {rewards[frame - 1]:.4f}\n"
+                f"Total reward: {sum(rewards[:frame]):.4f}"
             )
 
         return line, current, status, *cost_labels
