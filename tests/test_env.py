@@ -139,3 +139,37 @@ def test_env_uses_same_simulator(env):
     assert info["tour"] == state["tour"]
     assert obs["current_city"] == state["current_city"]
     assert np.isclose(obs["total_cost"][0], state["total_cost"])    
+
+def test_premature_close_is_rejected(env):
+    env.reset(seed=42)
+
+    with pytest.raises(ValueError):
+        env.step(env.close_action)
+
+def test_available_actions_match_visited_mask(env):
+    obs, info = env.reset(seed=42)
+
+    for city in range(env.instance.num_cities):
+        if city in info["tour"]:
+            assert obs["visited_mask"][city] == 1
+        else:
+            assert obs["visited_mask"][city] == 0
+            assert city in info["available_actions"]
+
+def test_custom_cost_environment():
+    instance = TSPInstance.from_json(
+        "instances/five_cities_custom_cost.json"
+    )
+    env = TSPEnv(instance, seed=42)
+
+    _, info = env.reset(seed=42)
+    action = info["available_actions"][0]
+
+    _, reward, _, _, _ = env.step(action)
+
+    expected = -instance.cost(
+        info["current_city"],
+        action,
+    )
+
+    assert reward == pytest.approx(expected)
