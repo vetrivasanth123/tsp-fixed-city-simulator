@@ -132,45 +132,48 @@ def animate_simulation(
         if frame > 0:
             previous = route[-1]
             action = actions[frame - 1]
-
+    
             if action == "CLOSE":
                 add_cost_label(previous, start_city)
             else:
                 route.append(action)
                 add_cost_label(previous, action)
-
+    
         plotted = route.copy()
-
+    
         if frame == len(actions):
             plotted.append(start_city)
-
+    
         points = xy[plotted]
         line.set_data(points[:, 0], points[:, 1])
-
+    
         city = route[-1]
         current.set_data([xy[city, 0]], [xy[city, 1]])
-
+    
         if frame == 0:
             status.set_text(
                 f"Start city: {start_city}\n"
                 f"Total cost: 0.0000\n"
                 f"Total reward: 0.0000"
             )
+    
         elif actions[frame - 1] == "CLOSE":
             status.set_text(
                 "Tour complete\n"
-                f"Total cost: {sum(instance.cost(a, b) for a, b in zip(route[:-1], route[1:])):.4f}\n"
+                f"Total cost: {sum(instance.cost(a, b) for a, b in zip(route, route[1:] + [start_city])):.4f}\n"
                 f"Total reward: {sum(rewards):.4f}"
             )
+    
         else:
             status.set_text(
                 f"Current city: {city}\n"
-                f"Action: {actions[frame - 1]}\n"
-                f"Cost: {instance.cost(route[-2], city):.4f}\n"
+                f"Action: {action}\n"
+                f"Cost: {instance.cost(previous, city):.4f}\n"
                 f"Reward: {rewards[frame - 1]:.4f}\n"
+                f"Total cost: {sum(-r for r in rewards[:frame]):.4f}\n"
                 f"Total reward: {sum(rewards[:frame]):.4f}"
             )
-
+    
         return line, current, status, *cost_labels
 
     animation = FuncAnimation(
