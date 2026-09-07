@@ -48,7 +48,7 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 def save_simulation(simulator, project_root, rewards):
     path = Path(project_root) / ".simulation.json"
 
-    actions = simulator.tour[1:]
+    actions = simulator.tour[1:] + ["CLOSE"]
     step_costs = [
         simulator.instance.cost(a, b)
         for a, b in zip(simulator.tour[:-1], simulator.tour[1:])
