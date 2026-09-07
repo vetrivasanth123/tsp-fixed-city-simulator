@@ -39,9 +39,10 @@ def main():
     print(instance.cost_matrix)
 
     _, animation = visualization.animate_simulation(
-        instance,
-        saved["actions"],
-        saved["start_city"],
+    instance,
+    saved["actions"],
+    saved["start_city"],
+    saved["rewards"],
     )
 
     display(HTML(animation.to_html5_video()))
