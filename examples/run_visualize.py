@@ -33,7 +33,8 @@ def main():
     print("Start city:", saved["start_city"])
     print("Actions:", saved["actions"])
     print("Tour:", saved["tour"])
-    print("Cost:", saved["total_cost"])
+    print("Total cost:", saved["total_cost"])
+    print("Total reward:", saved["total_reward"])
 
     print("\nVisualization cost matrix:")
     print(instance.cost_matrix)
