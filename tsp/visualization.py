@@ -92,7 +92,14 @@ def animate_simulation(
 ):
     xy = np.asarray(instance.coordinates, dtype=float)
 
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, (summary_ax, ax) = plt.subplots(
+        1,
+        2,
+        figsize=(10, 6),
+        gridspec_kw={"width_ratios": [1, 3]},
+    )
+
+    summary_ax.axis("off")
     plot_cities(instance, ax)
 
     ax.scatter(
@@ -106,7 +113,15 @@ def animate_simulation(
 
     line, = ax.plot([], [], linewidth=2.5)
     current, = ax.plot([], [], "o", markersize=14, zorder=6)
-    status = ax.text(0.02, 0.97, "", transform=ax.transAxes, va="top")
+
+    summary = summary_ax.text(
+        0.02,
+        0.95,
+        "",
+        transform=summary_ax.transAxes,
+        va="top",
+        ha="left",
+    )
 
     cost_labels = []
     route = [start_city]
@@ -149,22 +164,25 @@ def animate_simulation(
         current.set_data([xy[city, 0]], [xy[city, 1]])
 
         if frame == 0:
-            status.set_text(
+            summary.set_text(
+                f"SUMMARY\n\n"
                 f"Start city: {start_city}\n"
                 f"Total cost: 0.0000\n"
                 f"Total reward: 0.0000"
             )
 
         elif actions[frame - 1] == "CLOSE":
-            status.set_text(
-                "Tour complete\n"
+            summary.set_text(
+                f"SUMMARY\n\n"
+                f"Tour complete\n"
                 f"Total cost: "
                 f"{sum(instance.cost(a, b) for a, b in zip(route, route[1:] + [start_city])):.4f}\n"
                 f"Total reward: {sum(rewards):.4f}"
             )
 
         else:
-            status.set_text(
+            summary.set_text(
+                f"SUMMARY\n\n"
                 f"Current city: {city}\n"
                 f"Action: {action}\n"
                 f"Cost: {instance.cost(previous, city):.4f}\n"
@@ -173,7 +191,7 @@ def animate_simulation(
                 f"Total reward: {sum(rewards[:frame]):.4f}"
             )
 
-        return line, current, status, *cost_labels
+        return line, current, summary, *cost_labels
 
     animation = FuncAnimation(
         fig,
