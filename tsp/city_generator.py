@@ -2,7 +2,7 @@ import random
 
 
 class CityLocationGenerator:
-    """Generate unique city coordinates within a rectangular region."""
+    """Generate unique city coordinates sequentially."""
 
     def __init__(self, width, height, n_cities, seed=None):
         if width <= 0 or height <= 0:
@@ -27,11 +27,36 @@ class CityLocationGenerator:
                 self._rng.uniform(0.0, self.height),
             )
 
-            if coordinate not in self.coordinates:
-                self.coordinates.append(coordinate)
+            if coordinate in self.coordinates:
+                continue
+
+            self.coordinates.append(coordinate)
 
         return [list(c) for c in self.coordinates]
 
+    def generate_and_display(self):
+        """Generate cities and display the construction history."""
+        coordinates = self.generate()
+
+        print("\nCity generation")
+        print("----------------")
+
+        for i, coordinate in enumerate(coordinates):
+            print(
+                f"City {i}: "
+                f"({coordinate[0]:.4f}, {coordinate[1]:.4f}) "
+                f"| Recorded cities: {i + 1}/{self.n_cities}"
+            )
+
+        print("\nFinal city locations")
+        print("--------------------")
+
+        for i, coordinate in enumerate(coordinates):
+            print(f"City {i}: {coordinate}")
+
+        print(f"\nGeneration complete: {len(coordinates)} cities")
+
+        return coordinates
+
     def get_coordinates(self):
-        """Return the generated coordinates."""
         return [list(c) for c in self.coordinates]
