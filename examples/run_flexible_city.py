@@ -57,8 +57,9 @@ def main():
         _, reward, terminated, truncated, info = env.step(action)
         rewards.append(reward)
 
+        city = info["current_city"]
         print(
-            f"Current city: {info['current_city']} | "
+            f"Current city: {city} {instance.coordinates[city]} | "
             f"Available actions: {info['available_actions']} | "
             f"Selected action: {action}"
         )
@@ -66,10 +67,11 @@ def main():
     _, reward, terminated, truncated, info = env.step(env.close_action)
     rewards.append(reward)
 
+    city = info["current_city"]
     print(
-        f"Current city: {info['current_city']} | "
+        f"Current city: {city} {instance.coordinates[city]} | "
         f"Available actions: {info['available_actions']} | "
-        f"Selected action: CLOSE"
+        f"Selected action: close"
     )
 
     simulator = env.simulator
