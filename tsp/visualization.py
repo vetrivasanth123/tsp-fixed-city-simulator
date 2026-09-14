@@ -92,26 +92,24 @@ def animate_simulation(
     frames_per_move=12,
 ):
     xy = np.asarray(instance.coordinates, dtype=float)
+
     fig, (summary_ax, ax) = plt.subplots(
         1, 2, figsize=(10, 6), gridspec_kw={"width_ratios": [1, 3]}
     )
-
     summary_ax.axis("off")
     plot_cities(instance, ax)
 
     final_city = next((a for a in reversed(actions) if a != "CLOSE"), start_city)
 
+    ax.scatter(xy[:, 0], xy[:, 1], s=100, color="lightgray", zorder=3)
     ax.scatter(
-        xy[:, 0], xy[:, 1], s=100, color="lightgray", zorder=3
-    )
-    ax.scatter(
-        *xy[start_city], s=220, color="green",
-        edgecolors="black", linewidths=1.5, zorder=6
+        [xy[start_city, 0]], [xy[start_city, 1]],
+        s=220, color="green", edgecolors="black", linewidths=1.5, zorder=6
     )
     if final_city != start_city:
         ax.scatter(
-            *xy[final_city], s=220, color="red",
-            edgecolors="black", linewidths=1.5, zorder=6
+            [xy[final_city, 0]], [xy[final_city, 1]],
+            s=220, color="red", edgecolors="black", linewidths=1.5, zorder=6
         )
 
     line, = ax.plot([], [], linewidth=2.5)
@@ -127,62 +125,63 @@ def animate_simulation(
 
     def add_arrow(a, b):
         ax.annotate(
-            "",
-            xy=xy[b],
-            xytext=xy[a],
+            "", xy=xy[b], xytext=xy[a],
             arrowprops={"arrowstyle": "->", "linewidth": 2},
-            zorder=5,
+            zorder=5
         )
-        x, y = (xy[a] + xy[b]) / 2
+        p = (xy[a] + xy[b]) / 2
         labels.append(
-            ax.text(x, y, f"{instance.cost(a, b):.2f}",
-                    ha="center", va="center", fontsize=9)
+            ax.text(
+                p[0], p[1], f"{instance.cost(a, b):.2f}",
+                ha="center", va="center", fontsize=9
+            )
         )
 
     def update(frame):
         step, sub = divmod(frame, frames_per_move)
 
         if step == 0:
-            city = start_city
+            current.set_data(
+                [xy[start_city, 0]], [xy[start_city, 1]]
+            )
             summary.set_text(
                 f"SUMMARY\n\nStart city: {start_city}\n"
                 "Total cost: 0.0000\nTotal reward: 0.0000"
             )
-            current.set_data(*xy[city])
+            return line, current, summary, *labels
 
-        else:
-            i = min(step - 1, len(actions) - 1)
-            action = actions[i]
-            a = route[-1]
-            b = start_city if action == "CLOSE" else action
-            p = (sub + 1) / frames_per_move
-            pos = xy[a] + p * (xy[b] - xy[a])
+        i = min(step - 1, len(actions) - 1)
+        action = actions[i]
+        a = route[-1]
+        b = start_city if action == "CLOSE" else action
 
-            current.set_data(*pos)
-            line.set_data(
-                xy[route, 0],
-                xy[route, 1]
-            )
+        p = (sub + 1) / frames_per_move
+        pos = xy[a] + p * (xy[b] - xy[a])
+        current.set_data([pos[0]], [pos[1]])
 
-            if sub == frames_per_move - 1 and not drawn[i]:
-                add_arrow(a, b)
-                drawn[i] = True
-                if action != "CLOSE":
-                    route.append(action)
+        if sub == frames_per_move - 1 and not drawn[i]:
+            add_arrow(a, b)
+            drawn[i] = True
+            if action != "CLOSE":
+                route.append(action)
 
-            cost = -rewards[i]
-            summary.set_text(
-                f"SUMMARY\n\n"
-                f"{'Returning to start' if action == 'CLOSE' else f'Current city: {b}'}\n"
-                f"Action: {action}\n"
-                f"Cost: {cost:.4f}\n"
-                f"Reward: {rewards[i]:.4f}\n"
-                f"Total cost: {-sum(rewards[:i + 1]):.4f}\n"
-                f"Total reward: {sum(rewards[:i + 1]):.4f}"
-            )
+        total_cost = -sum(rewards[:i + 1])
+        total_reward = sum(rewards[:i + 1])
+
+        summary.set_text(
+            f"SUMMARY\n\n"
+            f"{'Returning to start' if action == 'CLOSE' else f'Current city: {b}'}\n"
+            f"Action: {action}\n"
+            f"Cost: {-rewards[i]:.4f}\n"
+            f"Reward: {rewards[i]:.4f}\n"
+            f"Total cost: {total_cost:.4f}\n"
+            f"Total reward: {total_reward:.4f}"
+        )
 
         if step >= len(actions):
-            current.set_data(*xy[start_city])
+            current.set_data(
+                [xy[start_city, 0]], [xy[start_city, 1]]
+            )
             route_plot = route + [start_city]
             line.set_data(xy[route_plot, 0], xy[route_plot, 1])
             summary.set_text(
