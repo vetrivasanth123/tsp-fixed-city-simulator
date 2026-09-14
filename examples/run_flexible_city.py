@@ -1,3 +1,4 @@
+
 import argparse
 import random
 import sys
@@ -54,14 +55,14 @@ def main():
 
     while info["available_actions"]:
         current_city = info["current_city"]
+        current_coordinate = instance.coordinates[current_city]
         action = rng.choice(info["available_actions"])
-        selected_coordinate = instance.coordinates[action]
 
         print(
-            f"Current city: {current_city} | "
+            f"Current city: {current_city} "
+            f"({current_coordinate[0]:.4f}, {current_coordinate[1]:.4f}) | "
             f"Available actions: {info['available_actions']} | "
-            f"Selected action: {action} "
-            f"({selected_coordinate[0]:.4f}, {selected_coordinate[1]:.4f})"
+            f"Selected action: {action}"
         )
 
         _, reward, terminated, truncated, info = env.step(action)
@@ -70,8 +71,12 @@ def main():
     _, reward, terminated, truncated, info = env.step(env.close_action)
     rewards.append(reward)
 
+    current_city = info["current_city"]
+    current_coordinate = instance.coordinates[current_city]
+
     print(
-        f"Current city: {info['current_city']} | "
+        f"Current city: {current_city} "
+        f"({current_coordinate[0]:.4f}, {current_coordinate[1]:.4f}) | "
         f"Available actions: {info['available_actions']} | "
         f"Selected action: close"
     )
@@ -98,3 +103,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
