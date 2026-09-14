@@ -99,7 +99,9 @@ def animate_simulation(
     summary_ax.axis("off")
     plot_cities(instance, ax)
 
-    blue, green, red, gray, edge = "#2563EB", "#16A34A", "#DC2626", "#D1D5DB", "#374151"
+    blue, green, red, gray, edge = (
+        "#2563EB", "#16A34A", "#DC2626", "#D1D5DB", "#374151"
+    )
     final_city = next((a for a in reversed(actions) if a != "CLOSE"), start_city)
 
     ax.scatter(xy[:, 0], xy[:, 1], s=100, color=gray, zorder=3)
@@ -124,24 +126,34 @@ def animate_simulation(
     labels = []
 
     def add_arrow(a, b):
-        x1, y1 = xy[a]
-        x2, y2 = xy[b]
-        dx, dy = x2 - x1, y2 - y1
-        labels.append(
-            ax.annotate(
-                "",
-                xy=(x1 + 0.5 * dx, y1 + 0.5 * dy),
-                xytext=(x1 + 0.35 * dx, y1 + 0.35 * dy),
-                arrowprops={"arrowstyle": "->", "linewidth": 2.5, "color": red},
-                zorder=8,
-            )
+        p = 0.5 * (xy[a] + xy[b])
+        d = xy[b] - xy[a]
+        q1, q2 = p - 0.12 * d, p + 0.12 * d
+
+        ax.plot(
+            [xy[a, 0], xy[b, 0]],
+            [xy[a, 1], xy[b, 1]],
+            color=blue,
+            linewidth=2.8,
+            zorder=4,
         )
-        p = (xy[a] + xy[b]) / 2
+        ax.annotate(
+            "",
+            xy=q2,
+            xytext=q1,
+            arrowprops={
+                "arrowstyle": "->",
+                "color": red,
+                "linewidth": 2,
+            },
+            zorder=6,
+        )
         labels.append(
             ax.text(
-                p[0], p[1], f"{instance.cost(a, b):.2f}",
-                ha="center", va="center", fontsize=9,
-                fontweight="bold", color=red
+                p[0], p[1],
+                f"{instance.cost(a, b):.2f}",
+                ha="center", va="bottom",
+                fontsize=9, fontweight="bold", color=red
             )
         )
 
