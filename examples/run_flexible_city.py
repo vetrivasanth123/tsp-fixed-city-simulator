@@ -1,3 +1,4 @@
+
 from pathlib import Path
 import random
 import sys
@@ -5,39 +6,28 @@ import sys
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from tsp.city_generator import CityLocationGenerator
 from tsp.instance import TSPInstance
 from tsp.env import TSPEnv
 import tsp.visualization as visualization
 
 
-def choose_instance():
-    print("\nSelect cost model")
-    print("-----------------")
-    print("1. Euclidean cost")
-    print("2. Custom cost matrix")
-    print("3. Exit")
-
-    while True:
-        choice = input("\nEnter your choice (1/2/3): ").strip()
-
-        if choice == "1":
-            return TSPInstance.from_json(
-                PROJECT_ROOT / "instances/five_cities.json"
-            )
-
-        if choice == "2":
-            return TSPInstance.from_json(
-                PROJECT_ROOT / "instances/five_cities_custom_cost.json"
-            )
-
-        if choice == "3":
-            sys.exit(0)
-
-        print("Invalid choice.")
-
-
 def main():
-    instance = choose_instance()
+    print("\nFlexible City TSP Simulator")
+    print("---------------------------")
+
+    width = float(input("Width: "))
+    height = float(input("Height: "))
+    n_cities = int(input("Number of cities: "))
+
+    seed_input = input("Seed (press Enter for random): ").strip()
+    seed = int(seed_input) if seed_input else None
+
+    coordinates = CityLocationGenerator(
+        width, height, n_cities, seed
+    ).generate()
+
+    instance = TSPInstance(coordinates, name="generated_tsp")
     env = TSPEnv(instance)
 
     _, info = env.reset()
@@ -67,7 +57,6 @@ def main():
 
     while info["available_actions"]:
         action = rng.choice(info["available_actions"])
-
         _, reward, terminated, truncated, info = env.step(action)
         rewards.append(reward)
 
@@ -77,9 +66,7 @@ def main():
             f"Selected action: {action}"
         )
 
-    _, reward, terminated, truncated, info = env.step(
-        env.close_action
-    )
+    _, reward, terminated, truncated, info = env.step(env.close_action)
     rewards.append(reward)
 
     print(
@@ -110,3 +97,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
