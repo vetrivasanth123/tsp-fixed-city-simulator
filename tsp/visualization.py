@@ -112,7 +112,7 @@ def animate_simulation(
             s=220, color="red", edgecolors="black", linewidths=1.5, zorder=6
         )
 
-    line, = ax.plot([], [], linewidth=2.5, color="royalblue")
+    line, = ax.plot([], [], linewidth=2.5, color="blue")
     current, = ax.plot([], [], "o", markersize=12, color="green", zorder=7)
     summary = summary_ax.text(
         0.02, 0.95, "", transform=summary_ax.transAxes,
