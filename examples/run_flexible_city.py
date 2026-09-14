@@ -68,16 +68,17 @@ def main():
         _, reward, terminated, truncated, info = env.step(action)
         rewards.append(reward)
 
-    _, reward, terminated, truncated, info = env.step(env.close_action)
-    rewards.append(reward)
-
     current_city = info["current_city"]
     current_coordinate = instance.coordinates[current_city]
-
+    available_actions = info["available_actions"]
+    
+    _, reward, terminated, truncated, info = env.step(env.close_action)
+    rewards.append(reward)
+    
     print(
         f"Current city: {current_city} "
         f"({current_coordinate[0]:.4f}, {current_coordinate[1]:.4f}) | "
-        f"Available actions: {info['available_actions']} | "
+        f"Available actions: {available_actions} | "
         f"Selected action: close"
     )
 
