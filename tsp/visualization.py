@@ -124,16 +124,24 @@ def animate_simulation(
     labels = []
 
     def add_arrow(a, b):
-        ax.annotate(
-            "", xy=xy[b], xytext=xy[a],
-            arrowprops={"arrowstyle": "->", "linewidth": 2.5, "color": red},
-            zorder=8,
+        x1, y1 = xy[a]
+        x2, y2 = xy[b]
+        dx, dy = x2 - x1, y2 - y1
+        labels.append(
+            ax.annotate(
+                "",
+                xy=(x1 + 0.5 * dx, y1 + 0.5 * dy),
+                xytext=(x1 + 0.35 * dx, y1 + 0.35 * dy),
+                arrowprops={"arrowstyle": "->", "linewidth": 2.5, "color": red},
+                zorder=8,
+            )
         )
         p = (xy[a] + xy[b]) / 2
         labels.append(
             ax.text(
                 p[0], p[1], f"{instance.cost(a, b):.2f}",
-                ha="center", va="center", fontsize=9, color=edge
+                ha="center", va="center", fontsize=9,
+                fontweight="bold", color=red
             )
         )
 
