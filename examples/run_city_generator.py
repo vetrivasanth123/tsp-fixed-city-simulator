@@ -23,7 +23,7 @@ def main():
 
     instance = TSPInstance(coordinates, name="generated_tsp")
 
-    print("\nDistance / cost matrix")
+    print("\nEuclidean distance matrix")
     print("----------------------")
     print(instance.cost_matrix)
 
