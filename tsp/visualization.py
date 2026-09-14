@@ -99,24 +99,24 @@ def animate_simulation(
     summary_ax.axis("off")
     plot_cities(instance, ax)
 
+    blue, green, red, gray, edge = "#2563EB", "#16A34A", "#DC2626", "#D1D5DB", "#374151"
     final_city = next((a for a in reversed(actions) if a != "CLOSE"), start_city)
 
-    ax.scatter(xy[:, 0], xy[:, 1], s=100, color="lightgray", zorder=3)
+    ax.scatter(xy[:, 0], xy[:, 1], s=100, color=gray, zorder=3)
     ax.scatter(
         [xy[start_city, 0]], [xy[start_city, 1]],
-        s=220, color="green", edgecolors="black", linewidths=1.5, zorder=6
+        s=220, color=green, edgecolors=edge, linewidths=1.5, zorder=6
     )
     if final_city != start_city:
         ax.scatter(
             [xy[final_city, 0]], [xy[final_city, 1]],
-            s=220, color="red", edgecolors="black", linewidths=1.5, zorder=6
+            s=220, color=red, edgecolors=edge, linewidths=1.5, zorder=6
         )
 
-    line, = ax.plot([], [], linewidth=2.5, color="blue")
-    current, = ax.plot([], [], "o", markersize=12, color="green", zorder=7)
+    line, = ax.plot([], [], linewidth=2.8, color=blue)
+    current, = ax.plot([], [], "o", markersize=12, color=green, zorder=7)
     summary = summary_ax.text(
-        0.02, 0.95, "", transform=summary_ax.transAxes,
-        va="top", ha="left"
+        0.02, 0.95, "", transform=summary_ax.transAxes, va="top", ha="left"
     )
 
     route = [start_city]
@@ -126,14 +126,14 @@ def animate_simulation(
     def add_arrow(a, b):
         ax.annotate(
             "", xy=xy[b], xytext=xy[a],
-            arrowprops={"arrowstyle": "->", "linewidth": 2},
-            zorder=5
+            arrowprops={"arrowstyle": "->", "linewidth": 2.5, "color": blue},
+            zorder=5,
         )
         p = (xy[a] + xy[b]) / 2
         labels.append(
             ax.text(
                 p[0], p[1], f"{instance.cost(a, b):.2f}",
-                ha="center", va="center", fontsize=9
+                ha="center", va="center", fontsize=9, color=edge
             )
         )
 
@@ -141,9 +141,7 @@ def animate_simulation(
         step, sub = divmod(frame, frames_per_move)
 
         if step == 0:
-            current.set_data(
-                [xy[start_city, 0]], [xy[start_city, 1]]
-            )
+            current.set_data([xy[start_city, 0]], [xy[start_city, 1]])
             summary.set_text(
                 f"SUMMARY\n\nStart city: {start_city}\n"
                 "Total cost: 0.0000\nTotal reward: 0.0000"
@@ -165,23 +163,18 @@ def animate_simulation(
             if action != "CLOSE":
                 route.append(action)
 
-        total_cost = -sum(rewards[:i + 1])
-        total_reward = sum(rewards[:i + 1])
-
         summary.set_text(
             f"SUMMARY\n\n"
             f"{'Returning to start' if action == 'CLOSE' else f'Current city: {b}'}\n"
             f"Action: {action}\n"
             f"Cost: {-rewards[i]:.4f}\n"
             f"Reward: {rewards[i]:.4f}\n"
-            f"Total cost: {total_cost:.4f}\n"
-            f"Total reward: {total_reward:.4f}"
+            f"Total cost: {-sum(rewards[:i + 1]):.4f}\n"
+            f"Total reward: {sum(rewards[:i + 1]):.4f}"
         )
 
-        if step >= len(actions):
-            current.set_data(
-                [xy[start_city, 0]], [xy[start_city, 1]]
-            )
+        if step > len(actions):
+            current.set_data([xy[start_city, 0]], [xy[start_city, 1]])
             route_plot = route + [start_city]
             line.set_data(xy[route_plot, 0], xy[route_plot, 1])
             summary.set_text(
