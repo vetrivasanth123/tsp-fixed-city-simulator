@@ -128,7 +128,7 @@ def animate_simulation(
     def add_arrow(a, b):
         p = 0.5 * (xy[a] + xy[b])
         d = xy[b] - xy[a]
-        q1, q2 = p - 0.12 * d, p + 0.12 * d
+        q1, q2 = p - 0.03 * d, p + 0.03 * d
 
         ax.plot(
             [xy[a, 0], xy[b, 0]],
@@ -143,7 +143,7 @@ def animate_simulation(
             xytext=q1,
             arrowprops={
                 "arrowstyle": "->",
-                "color": red,
+                "color": orange,
                 "linewidth": 2,
             },
             zorder=6,
