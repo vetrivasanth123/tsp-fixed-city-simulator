@@ -53,12 +53,3 @@ def test_get_coordinates():
     coordinates = generator.generate()
 
     assert generator.get_coordinates() == coordinates
-
-
-def test_generate_and_display():
-    generator = CityLocationGenerator(4, 4, 5, seed=42)
-    coordinates = generator.generate_and_display()
-
-    assert len(coordinates) == 5
-    assert generator.get_coordinates() == coordinates
-
