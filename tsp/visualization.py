@@ -143,7 +143,7 @@ def animate_simulation(
             xytext=q1,
             arrowprops={
                 "arrowstyle": "->",
-                "color": "green",
+                "color": "orange",
                 "linewidth": 2,
             },
             zorder=6,
