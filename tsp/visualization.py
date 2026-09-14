@@ -1,5 +1,4 @@
-
-from __future__ import annotations
+from **future** import annotations
 
 import json
 from pathlib import Path
@@ -10,180 +9,173 @@ from matplotlib.animation import FuncAnimation
 
 from .utils import tour_cost
 
-
 def plot_cities(instance, ax=None):
-    if ax is None:
-        _, ax = plt.subplots()
+if ax is None:
+_, ax = plt.subplots()
 
-    xy = np.asarray(instance.coordinates, dtype=float)
-    ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
 
-    for i, (x, y) in enumerate(xy):
-        ax.annotate(str(i), (x, y), xytext=(7, 7), textcoords="offset points")
+xy = np.asarray(instance.coordinates, dtype=float)
+ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
 
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_aspect("equal", adjustable="box")
-    ax.grid(True, alpha=0.3)
+for i, (x, y) in enumerate(xy):
+    ax.annotate(str(i), (x, y), xytext=(7, 7), textcoords="offset points")
 
-    return ax
+ax.set_xlabel("X")
+ax.set_ylabel("Y")
+ax.set_aspect("equal", adjustable="box")
+ax.grid(True, alpha=0.3)
+
+return ax
 
 
 def plot_tour(instance, tour, ax=None, title="TSP Tour"):
-    tour = list(tour)
+tour = list(tour)
 
-    if len(tour) != instance.num_cities:
-        raise ValueError("Tour must contain every city exactly once.")
+if len(tour) != instance.num_cities:
+    raise ValueError("Tour must contain every city exactly once.")
 
-    ax = plot_cities(instance, ax)
-    route = tour + [tour[0]]
-    xy = np.asarray(instance.coordinates)[route]
+ax = plot_cities(instance, ax)
+route = tour + [tour[0]]
+xy = np.asarray(instance.coordinates)[route]
 
-    ax.plot(xy[:, 0], xy[:, 1], marker="o", linewidth=2)
-    ax.set_title(f"{title} — Cost: {tour_cost(tour, instance):.4f}")
+ax.plot(xy[:, 0], xy[:, 1], marker="o", linewidth=2)
+ax.set_title(f"{title} — Cost: {tour_cost(tour, instance):.4f}")
 
-    return ax
+return ax
 
 
-def save_simulation(simulator, project_root, rewards):
-    path = Path(project_root) / ".simulation.json"
+def save_simulation(simulator, project_root, trajectory):
+path = Path(project_root) / ".simulation.json"
 
-    actions = simulator.tour[1:] + ["CLOSE"]
-    step_costs = [
-        simulator.instance.cost(a, b)
-        for a, b in zip(simulator.tour[:-1], simulator.tour[1:])
-    ]
 
-    if simulator.done and len(simulator.tour) > 1:
-        step_costs.append(
-            simulator.instance.cost(
-                simulator.tour[-1],
-                simulator.start_city,
-            )
-        )
-
-    data = {
-        "instance": simulator.instance.name,
+data = {
+    "instance": {
+        "name": simulator.instance.name,
+        "coordinates": simulator.instance.coordinates.tolist(),
+        "cost_matrix": simulator.instance.cost_matrix.tolist(),
+    },
+    "trajectory": trajectory,
+    "summary": {
         "start_city": simulator.start_city,
-        "actions": actions,
-        "step_costs": step_costs,
-        "rewards": [float(reward) for reward in rewards],
         "tour": simulator.tour + [simulator.start_city],
-        "total_cost": simulator.total_cost,
-        "total_reward": float(sum(rewards)),
-    }
+        "total_cost": float(simulator.total_cost),
+        "total_reward": float(sum(step["reward"] for step in trajectory)),
+    },
+}
 
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def load_saved_simulation(project_root):
-    path = Path(project_root) / ".simulation.json"
+path = Path(project_root) / ".simulation.json"
 
-    if not path.exists():
-        return None
 
-    return json.loads(path.read_text(encoding="utf-8"))
+if not path.exists():
+    return None
+
+return json.loads(path.read_text(encoding="utf-8"))
 
 
 def animate_simulation(
-    instance,
-    actions,
-    start_city,
-    rewards,
-    interval=900,
-    ):
-    xy = np.asarray(instance.coordinates, dtype=float)
+instance,
+actions,
+start_city,
+rewards,
+interval=900,
+):
+xy = np.asarray(instance.coordinates, dtype=float)
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    plot_cities(instance, ax)
 
-    ax.scatter(
-        [xy[start_city, 0]],
-        [xy[start_city, 1]],
-        s=220,
-        facecolors="none",
-        linewidths=3,
-        zorder=5,
+fig, ax = plt.subplots(figsize=(8, 6))
+plot_cities(instance, ax)
+
+ax.scatter(
+    [xy[start_city, 0]],
+    [xy[start_city, 1]],
+    s=220,
+    facecolors="none",
+    linewidths=3,
+    zorder=5,
+)
+
+line, = ax.plot([], [], linewidth=2.5)
+current, = ax.plot([], [], "o", markersize=14, zorder=6)
+status = ax.text(0.02, 0.97, "", transform=ax.transAxes, va="top")
+
+cost_labels = []
+route = [start_city]
+
+def add_cost_label(a, b):
+    x1, y1 = xy[a]
+    x2, y2 = xy[b]
+
+    cost_labels.append(
+        ax.text(
+            (x1 + x2) / 2,
+            (y1 + y2) / 2,
+            f"{instance.cost(a, b):.2f}",
+            ha="center",
+            va="center",
+            fontsize=9,
+        )
     )
 
-    line, = ax.plot([], [], linewidth=2.5)
-    current, = ax.plot([], [], "o", markersize=14, zorder=6)
-    status = ax.text(0.02, 0.97, "", transform=ax.transAxes, va="top")
+def update(frame):
+    if frame > 0:
+        previous = route[-1]
+        action = actions[frame - 1]
 
-    cost_labels = []
-    route = [start_city]
+        if action == "CLOSE":
+            add_cost_label(previous, start_city)
+        else:
+            route.append(action)
+            add_cost_label(previous, action)
 
-    def add_cost_label(a, b):
-        x1, y1 = xy[a]
-        x2, y2 = xy[b]
+    plotted = route.copy()
 
-        cost_labels.append(
-            ax.text(
-                (x1 + x2) / 2,
-                (y1 + y2) / 2,
-                f"{instance.cost(a, b):.2f}",
-                ha="center",
-                va="center",
-                fontsize=9,
-            )
+    if frame == len(actions):
+        plotted.append(start_city)
+
+    points = xy[plotted]
+    line.set_data(points[:, 0], points[:, 1])
+
+    city = route[-1]
+    current.set_data([xy[city, 0]], [xy[city, 1]])
+
+    if frame == 0:
+        status.set_text(
+            f"Start city: {start_city}\n"
+            f"Total cost: 0.0000\n"
+            f"Total reward: 0.0000"
         )
 
-    def update(frame):
-        if frame > 0:
-            previous = route[-1]
-            action = actions[frame - 1]
-    
-            if action == "CLOSE":
-                add_cost_label(previous, start_city)
-            else:
-                route.append(action)
-                add_cost_label(previous, action)
-    
-        plotted = route.copy()
-    
-        if frame == len(actions):
-            plotted.append(start_city)
-    
-        points = xy[plotted]
-        line.set_data(points[:, 0], points[:, 1])
-    
-        city = route[-1]
-        current.set_data([xy[city, 0]], [xy[city, 1]])
-    
-        if frame == 0:
-            status.set_text(
-                f"Start city: {start_city}\n"
-                f"Total cost: 0.0000\n"
-                f"Total reward: 0.0000"
-            )
-    
-        elif actions[frame - 1] == "CLOSE":
-            status.set_text(
-                "Tour complete\n"
-                f"Total cost: {sum(instance.cost(a, b) for a, b in zip(route, route[1:] + [start_city])):.4f}\n"
-                f"Total reward: {sum(rewards):.4f}"
-            )
-    
-        else:
-            status.set_text(
-                f"Current city: {city}\n"
-                f"Action: {action}\n"
-                f"Cost: {instance.cost(previous, city):.4f}\n"
-                f"Reward: {rewards[frame - 1]:.4f}\n"
-                f"Total cost: {sum(-r for r in rewards[:frame]):.4f}\n"
-                f"Total reward: {sum(rewards[:frame]):.4f}"
-            )
-    
-        return line, current, status, *cost_labels
+    elif actions[frame - 1] == "CLOSE":
+        status.set_text(
+            "Tour complete\n"
+            f"Total cost: "
+            f"{sum(instance.cost(a, b) for a, b in zip(route, route[1:] + [start_city])):.4f}\n"
+            f"Total reward: {sum(rewards):.4f}"
+        )
 
-    animation = FuncAnimation(
-        fig,
-        update,
-        frames=len(actions) + 1,
-        interval=interval,
-        repeat=False,
-        blit=False,
-    )
+    else:
+        status.set_text(
+            f"Current city: {city}\n"
+            f"Action: {action}\n"
+            f"Cost: {instance.cost(previous, city):.4f}\n"
+            f"Reward: {rewards[frame - 1]:.4f}\n"
+            f"Total cost: {sum(-r for r in rewards[:frame]):.4f}\n"
+            f"Total reward: {sum(rewards[:frame]):.4f}"
+        )
 
-    return fig, animation
+    return line, current, status, *cost_labels
 
+animation = FuncAnimation(
+    fig,
+    update,
+    frames=len(actions) + 1,
+    interval=interval,
+    repeat=False,
+    blit=False,
+)
+
+return fig, animation
