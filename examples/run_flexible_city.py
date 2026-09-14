@@ -1,7 +1,7 @@
-
-from pathlib import Path
+import argparse
 import random
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -13,18 +13,15 @@ import tsp.visualization as visualization
 
 
 def main():
-    print("\nFlexible City TSP Simulator")
-    print("---------------------------")
-
-    width = float(input("Width: "))
-    height = float(input("Height: "))
-    n_cities = int(input("Number of cities: "))
-
-    seed_input = input("Seed (press Enter for random): ").strip()
-    seed = int(seed_input) if seed_input else None
+    parser = argparse.ArgumentParser(description="Run a flexible-city TSP simulation.")
+    parser.add_argument("--width", type=float, required=True)
+    parser.add_argument("--height", type=float, required=True)
+    parser.add_argument("--n-cities", type=int, required=True)
+    parser.add_argument("--seed", type=int, default=None)
+    args = parser.parse_args()
 
     coordinates = CityLocationGenerator(
-        width, height, n_cities, seed
+        args.width, args.height, args.n_cities, args.seed
     ).generate()
 
     instance = TSPInstance(coordinates, name="generated_tsp")
@@ -87,7 +84,7 @@ def main():
     print("Total reward:", sum(rewards))
 
     visualization.save_simulation(
-        env.simulator,
+        simulator,
         PROJECT_ROOT,
         rewards,
     )
@@ -97,4 +94,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
