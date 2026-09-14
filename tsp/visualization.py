@@ -143,7 +143,7 @@ def animate_simulation(
             xytext=q1,
             arrowprops={
                 "arrowstyle": "->",
-                "color": "orange",
+                "color": "green",
                 "linewidth": 2,
             },
             zorder=6,
@@ -153,7 +153,7 @@ def animate_simulation(
                 p[0], p[1],
                 f"{instance.cost(a, b):.2f}",
                 ha="center", va="bottom",
-                fontsize=12, fontweight="bold", color="red"
+                fontsize=12, fontweight="bold", color="black"
             )
         )
 
