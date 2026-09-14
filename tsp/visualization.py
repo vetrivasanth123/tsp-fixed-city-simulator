@@ -153,7 +153,7 @@ def animate_simulation(
                 p[0], p[1],
                 f"{instance.cost(a, b):.2f}",
                 ha="center", va="bottom",
-                fontsize=9, fontweight="bold", color=black
+                fontsize=12, fontweight="bold", color="black"
             )
         )
 
