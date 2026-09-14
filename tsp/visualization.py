@@ -23,8 +23,13 @@ def plot_cities(instance, ax=None):
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_aspect("equal", adjustable="box")
-    ax.grid(True, alpha=0.3)
 
+    if instance.width is not None:
+        ax.set_xlim(0, instance.width)
+    if instance.height is not None:
+        ax.set_ylim(0, instance.height)
+
+    ax.grid(True, alpha=0.3)
     return ax
 
 
@@ -47,16 +52,15 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 def save_simulation(simulator, project_root, trajectory):
     path = Path(project_root) / ".simulation.json"
     instance = simulator.instance
-
-    actions = [step["action"] for step in trajectory]
     rewards = [float(step["reward"]) for step in trajectory]
-    step_costs = [float(step["step_cost"]) for step in trajectory]
 
     data = {
         "instance": {
             "name": instance.name,
             "coordinates": instance.coordinates.tolist(),
             "cost_matrix": instance.cost_matrix.tolist(),
+            "width": instance.width,
+            "height": instance.height,
         },
         "trajectory": trajectory,
         "summary": {
