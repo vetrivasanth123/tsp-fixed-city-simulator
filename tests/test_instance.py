@@ -205,3 +205,37 @@ def test_negative_cost_matrix_is_rejected():
             cost_matrix=cost_matrix,
         )
 
+def test_instance_stores_spatial_bounds():
+    coordinates = make_coordinates(20, 15, 10)
+    instance = TSPInstance(
+        coordinates,
+        width=20,
+        height=15,
+    )
+
+    assert instance.width == 20
+    assert instance.height == 15
+
+
+def test_instance_rejects_coordinates_outside_width():
+    coordinates = make_coordinates(10, 10, 5)
+    coordinates[0, 0] = 11.0
+
+    with pytest.raises(ValueError):
+        TSPInstance(
+            coordinates,
+            width=10,
+            height=10,
+        )
+
+
+def test_instance_rejects_coordinates_outside_height():
+    coordinates = make_coordinates(10, 10, 5)
+    coordinates[0, 1] = 11.0
+
+    with pytest.raises(ValueError):
+        TSPInstance(
+            coordinates,
+            width=10,
+            height=10,
+        )
