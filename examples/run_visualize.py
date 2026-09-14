@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import sys
 import importlib
@@ -21,29 +20,38 @@ def main():
 
     if saved is None:
         raise RuntimeError(
-            "No simulation exists. Run run_fixed_city.py first."
+            "No simulation exists. Run run_flexible_city.py first."
         )
 
-    instance = TSPInstance.from_json(
-        PROJECT_ROOT / "instances" / f"{saved['instance']}.json"
+    instance_data = saved["instance"]
+    trajectory = saved["trajectory"]
+    summary = saved["summary"]
+
+    instance = TSPInstance(
+        instance_data["coordinates"],
+        name=instance_data["name"],
+        cost_matrix=instance_data["cost_matrix"],
     )
 
+    actions = [step["action"] for step in trajectory]
+    rewards = [step["reward"] for step in trajectory]
+
     print("Visualizing saved simulation:")
-    print("Saved instance:", saved["instance"])
-    print("Start city:", saved["start_city"])
-    print("Actions:", saved["actions"])
-    print("Tour:", saved["tour"])
-    print("Total cost:", saved["total_cost"])
-    print("Total reward:", saved["total_reward"])
+    print("Saved instance:", instance.name)
+    print("Start city:", summary["start_city"])
+    print("Actions:", actions)
+    print("Tour:", summary["tour"])
+    print("Total cost:", summary["total_cost"])
+    print("Total reward:", summary["total_reward"])
 
     print("\nVisualization cost matrix:")
     print(instance.cost_matrix)
 
     _, animation = visualization.animate_simulation(
-    instance,
-    saved["actions"],
-    saved["start_city"],
-    saved["rewards"],
+        instance,
+        actions,
+        summary["start_city"],
+        rewards,
     )
 
     display(HTML(animation.to_html5_video()))
@@ -51,4 +59,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
