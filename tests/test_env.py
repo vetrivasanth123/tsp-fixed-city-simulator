@@ -1,16 +1,34 @@
 
+"""Tests for the TSP Gymnasium environment."""
+
 import numpy as np
 import pytest
 
+from tsp.city_generator import CityLocationGenerator
 from tsp.env import TSPEnv
 from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
 
 
+def make_instance(n_cities=5, seed=42, custom_cost=False):
+    coordinates = np.asarray(
+        CityLocationGenerator(10, 10, n_cities, seed=seed).generate(),
+        dtype=float,
+    )
+
+    if custom_cost:
+        rng = np.random.default_rng(seed)
+        cost_matrix = rng.uniform(1.0, 100.0, (n_cities, n_cities))
+        cost_matrix = (cost_matrix + cost_matrix.T) / 2.0
+        np.fill_diagonal(cost_matrix, 0.0)
+        return TSPInstance(coordinates, cost_matrix=cost_matrix)
+
+    return TSPInstance(coordinates)
+
+
 @pytest.fixture
 def env():
-    instance = TSPInstance.from_json("instances/five_cities.json")
-    return TSPEnv(instance, seed=42)
+    return TSPEnv(make_instance(), seed=42)
 
 
 def test_reset(env):
@@ -20,12 +38,12 @@ def test_reset(env):
     assert obs["visited_mask"].sum() == 1
     assert obs["current_city"] == info["current_city"]
     assert obs["total_cost"][0] == 0.0
-    assert len(info["available_actions"]) == 4
+    assert len(info["available_actions"]) == env.instance.num_cities - 1
 
 
 def test_action_space(env):
-    assert env.action_space.n == 6
-    assert env.close_action == 5
+    assert env.action_space.n == env.instance.num_cities + 1
+    assert env.close_action == env.instance.num_cities
 
 
 def test_step(env):
@@ -69,49 +87,44 @@ def test_invalid_action_range(env):
     env.reset(seed=42)
 
     with pytest.raises(ValueError):
-        env.step(10)
+        env.step(env.action_space.n)
 
 
 def test_complete_tour(env):
     obs, info = env.reset(seed=42)
+    n_cities = env.instance.num_cities
 
     while info["available_actions"]:
         obs, _, terminated, truncated, info = env.step(
             info["available_actions"][0]
         )
 
-    assert not terminated
-    assert not truncated
-    assert len(info["tour"]) == 5
-    assert len(set(info["tour"])) == 5
-    assert obs["visited_mask"].sum() == 5
+    assert not terminated and not truncated
+    assert len(info["tour"]) == n_cities
+    assert len(set(info["tour"])) == n_cities
+    assert obs["visited_mask"].sum() == n_cities
     assert not info["available_actions"]
 
-    obs, reward, terminated, truncated, info = env.step(
-        env.close_action
-    )
+    obs, reward, terminated, truncated, info = env.step(env.close_action)
 
     assert terminated and not truncated
     assert reward < 0
-    assert len(info["tour"]) == 5
-    assert obs["visited_mask"].sum() == 5
+    assert len(info["tour"]) == n_cities
+    assert obs["visited_mask"].sum() == n_cities
     assert not info["available_actions"]
     assert info["total_cost"] > 0
     assert info["current_city"] == info["start_city"]
+
 
 def test_reward_matches_tour_cost(env):
     _, info = env.reset(seed=42)
     total_reward = 0.0
 
     while info["available_actions"]:
-        _, reward, _, _, info = env.step(
-            info["available_actions"][0]
-        )
+        _, reward, _, _, info = env.step(info["available_actions"][0])
         total_reward += reward
 
-    _, reward, terminated, truncated, info = env.step(
-        env.close_action
-    )
+    _, reward, terminated, truncated, info = env.step(env.close_action)
     total_reward += reward
 
     assert terminated and not truncated
@@ -123,28 +136,31 @@ def test_seed_reproducibility(env):
     _, info2 = env.reset(seed=123)
 
     assert info1["start_city"] == info2["start_city"]
-    
+
+
 def test_environment_owns_simulator(env):
     assert isinstance(env.simulator, TSPSimulator)
     assert env.simulator.instance is env.instance
-    
+
+
 def test_env_uses_same_simulator(env):
     _, info = env.reset(seed=42)
-
     action = info["available_actions"][0]
-    obs, _, _, _, info = env.step(action)
 
+    obs, _, _, _, info = env.step(action)
     state = env.simulator.state()
 
     assert info["tour"] == state["tour"]
     assert obs["current_city"] == state["current_city"]
-    assert np.isclose(obs["total_cost"][0], state["total_cost"])    
+    assert np.isclose(obs["total_cost"][0], state["total_cost"])
+
 
 def test_premature_close_is_rejected(env):
     env.reset(seed=42)
 
     with pytest.raises(ValueError):
         env.step(env.close_action)
+
 
 def test_available_actions_match_visited_mask(env):
     obs, info = env.reset(seed=42)
@@ -156,20 +172,18 @@ def test_available_actions_match_visited_mask(env):
             assert obs["visited_mask"][city] == 0
             assert city in info["available_actions"]
 
+
 def test_custom_cost_environment():
-    instance = TSPInstance.from_json(
-        "instances/five_cities_custom_cost.json"
-    )
+    instance = make_instance(custom_cost=True)
     env = TSPEnv(instance, seed=42)
 
     _, info = env.reset(seed=42)
     action = info["available_actions"][0]
+    current_city = info["current_city"]
 
     _, reward, _, _, _ = env.step(action)
 
-    expected = -instance.cost(
-        info["current_city"],
-        action,
+    assert reward == pytest.approx(
+        -instance.cost(current_city, action)
     )
 
-    assert reward == pytest.approx(expected)
