@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -10,13 +9,15 @@ from .utils import euclidean_distance_matrix
 
 
 class TSPInstance:
-    """TSP instance with configurable edge costs."""
+    """TSP instance with configurable edge costs and spatial bounds."""
 
     def __init__(
         self,
         coordinates: np.ndarray,
         name: str = "tsp_instance",
         cost_matrix: np.ndarray | None = None,
+        width: float | None = None,
+        height: float | None = None,
     ) -> None:
         coordinates = np.asarray(coordinates, dtype=float)
 
@@ -27,9 +28,21 @@ class TSPInstance:
         if not np.all(np.isfinite(coordinates)):
             raise ValueError("coordinates must contain only finite values.")
 
+        if width is not None and width <= 0:
+            raise ValueError("width must be positive.")
+        if height is not None and height <= 0:
+            raise ValueError("height must be positive.")
+
         self.name = name
         self.coordinates = coordinates
         self.num_cities = len(coordinates)
+        self.width = float(width) if width is not None else None
+        self.height = float(height) if height is not None else None
+
+        if self.width is not None and np.any(coordinates[:, 0] > self.width):
+            raise ValueError("coordinates exceed the specified width.")
+        if self.height is not None and np.any(coordinates[:, 1] > self.height):
+            raise ValueError("coordinates exceed the specified height.")
 
         self.distance_matrix = euclidean_distance_matrix(coordinates)
 
@@ -64,28 +77,22 @@ class TSPInstance:
             dtype=float,
         )
 
-        cost_matrix = data.get("cost_matrix")
-
         return cls(
             coordinates=coordinates,
             name=data.get("name", path.stem),
-            cost_matrix=cost_matrix,
+            cost_matrix=data.get("cost_matrix"),
+            width=data.get("width"),
+            height=data.get("height"),
         )
 
     def cost(self, city_a: int, city_b: int) -> float:
-        """Return the edge cost from city_a to city_b."""
-
         self._validate_city_index(city_a)
         self._validate_city_index(city_b)
-
         return float(self.cost_matrix[city_a, city_b])
 
     def distance(self, city_a: int, city_b: int) -> float:
-        """Return the Euclidean distance between two cities."""
-
         self._validate_city_index(city_a)
         self._validate_city_index(city_b)
-
         return float(self.distance_matrix[city_a, city_b])
 
     def _validate_city_index(self, city_index: int) -> None:
@@ -97,4 +104,3 @@ class TSPInstance:
                 f"City index {city_index} is out of range "
                 f"for {self.num_cities} cities."
             )
-
