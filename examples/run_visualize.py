@@ -31,6 +31,8 @@ def main():
         instance_data["coordinates"],
         name=instance_data["name"],
         cost_matrix=instance_data["cost_matrix"],
+        width=instance_data["width"],
+        height=instance_data["height"],
     )
 
     actions = [step["action"] for step in trajectory]
@@ -38,6 +40,7 @@ def main():
 
     print("Visualizing saved simulation:")
     print("Saved instance:", instance.name)
+    print("Grid:", f"{instance.width} x {instance.height}")
     print("Start city:", summary["start_city"])
     print("Actions:", actions)
     print("Tour:", summary["tour"])
