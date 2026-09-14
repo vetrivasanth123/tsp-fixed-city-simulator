@@ -128,7 +128,7 @@ def animate_simulation(
     def add_arrow(a, b):
         p = 0.5 * (xy[a] + xy[b])
         d = xy[b] - xy[a]
-        q1, q2 = p - 0.05 * d, p + 0.05 * d
+        q1, q2 = p - 0.06 * d, p + 0.06 * d
 
         ax.plot(
             [xy[a, 0], xy[b, 0]],
