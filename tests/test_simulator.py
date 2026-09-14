@@ -1,22 +1,33 @@
 
-"""Tests for the fixed-city TSP simulator."""
+"""Tests for the TSP simulator."""
 
-from pathlib import Path
-
+import numpy as np
 import pytest
 
+from tsp.city_generator import CityLocationGenerator
 from tsp.instance import TSPInstance
 from tsp.simulator import TSPSimulator
 
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PATH = ROOT / "instances" / "five_cities.json"
-CUSTOM_PATH = ROOT / "instances" / "five_cities_custom_cost.json"
+def make_instance(n_cities=5, seed=42, custom_cost=False):
+    coordinates = np.asarray(
+        CityLocationGenerator(10, 10, n_cities, seed=seed).generate(),
+        dtype=float,
+    )
+
+    if custom_cost:
+        rng = np.random.default_rng(seed)
+        cost_matrix = rng.uniform(1.0, 100.0, (n_cities, n_cities))
+        cost_matrix = (cost_matrix + cost_matrix.T) / 2.0
+        np.fill_diagonal(cost_matrix, 0.0)
+        return TSPInstance(coordinates, cost_matrix=cost_matrix)
+
+    return TSPInstance(coordinates)
 
 
 @pytest.fixture
 def instance():
-    return TSPInstance.from_json(DEFAULT_PATH)
+    return make_instance()
 
 
 @pytest.fixture
@@ -47,9 +58,7 @@ def test_available_actions_excludes_visited_city(simulator):
 
     assert simulator.start_city not in available
     assert len(available) == simulator.instance.num_cities - 1
-
-    for city in available:
-        assert city not in simulator.tour
+    assert all(city not in simulator.tour for city in available)
 
 
 def test_step_adds_city(simulator):
@@ -58,39 +67,29 @@ def test_step_adds_city(simulator):
 
     simulator.step(next_city)
 
-    assert simulator.tour == [
-        simulator.start_city,
-        next_city,
-    ]
+    assert simulator.tour == [simulator.start_city, next_city]
     assert simulator.current_city == next_city
 
     expected = simulator.instance.cost(old_city, next_city)
-
     assert simulator.total_cost == pytest.approx(expected)
     assert simulator.total_distance == pytest.approx(expected)
 
 
 def test_cost_updates_after_step(simulator):
-    first_city = simulator.start_city
     next_city = simulator.available_actions()[0]
+    expected = simulator.instance.cost(simulator.current_city, next_city)
 
     simulator.step(next_city)
-
-    expected = simulator.instance.cost(
-        first_city,
-        next_city,
-    )
 
     assert simulator.total_cost == pytest.approx(expected)
 
 
 def test_simulator_uses_custom_cost():
-    instance = TSPInstance.from_json(CUSTOM_PATH)
+    instance = make_instance(custom_cost=True)
     simulator = TSPSimulator(instance, seed=42)
 
     current = simulator.current_city
     next_city = simulator.available_actions()[0]
-
     expected = instance.cost(current, next_city)
 
     simulator.step(next_city)
@@ -115,35 +114,33 @@ def test_close_tour_returns_to_start(simulator):
 
     cost_before = simulator.total_cost
     final_edge = simulator.instance.cost(
-        simulator.current_city,
-        simulator.start_city,
+        simulator.current_city, simulator.start_city
     )
 
     simulator.close_tour()
 
-    assert simulator.total_cost == pytest.approx(
-        cost_before + final_edge
-    )
+    assert simulator.total_cost == pytest.approx(cost_before + final_edge)
     assert simulator.done is True
-    
+
 
 def test_close_tour_rejects_incomplete_tour(simulator):
-    next_city = simulator.available_actions()[0]
-
-    simulator.step(next_city)
+    simulator.step(simulator.available_actions()[0])
 
     with pytest.raises(RuntimeError):
         simulator.close_tour()
 
     assert simulator.done is False
-    
-def test_complete_five_city_tour(simulator):
-    while len(simulator.tour) < simulator.instance.num_cities:
+
+
+def test_complete_tour(simulator):
+    n_cities = simulator.instance.num_cities
+
+    while len(simulator.tour) < n_cities:
         simulator.step(simulator.available_actions()[0])
 
-    assert len(simulator.tour) == 5
-    assert len(set(simulator.tour)) == 5
-    assert sorted(simulator.tour) == [0, 1, 2, 3, 4]
+    assert len(simulator.tour) == n_cities
+    assert len(set(simulator.tour)) == n_cities
+    assert sorted(simulator.tour) == list(range(n_cities))
 
     simulator.close_tour()
 
@@ -153,7 +150,7 @@ def test_complete_five_city_tour(simulator):
 
 def test_invalid_city_index_is_rejected(simulator):
     with pytest.raises((ValueError, IndexError)):
-        simulator.step(5)
+        simulator.step(simulator.instance.num_cities)
 
 
 def test_negative_city_index_is_rejected(simulator):
@@ -185,7 +182,7 @@ def test_step_after_completion_is_rejected(simulator):
     simulator.close_tour()
 
     with pytest.raises(RuntimeError):
-        simulator.step(0)
+        simulator.step(simulator.start_city)
 
 
 def test_state_contains_cost(simulator):
