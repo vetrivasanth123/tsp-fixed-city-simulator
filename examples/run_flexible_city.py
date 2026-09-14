@@ -29,7 +29,12 @@ def main():
         args.seed,
     ).generate()
 
-    instance = TSPInstance(coordinates, name="generated_tsp")
+    instance = TSPInstance(
+        coordinates,
+        name="generated_tsp",
+        width=args.width,
+        height=args.height,
+    )
     env = TSPEnv(instance)
 
     _, info = env.reset()
