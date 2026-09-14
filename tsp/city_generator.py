@@ -1,8 +1,9 @@
+
 import random
 
 
 class CityLocationGenerator:
-    """Generate unique city coordinates sequentially."""
+    """Sequentially generate unique city coordinates."""
 
     def __init__(self, width, height, n_cities, seed=None):
         if width <= 0 or height <= 0:
@@ -13,50 +14,41 @@ class CityLocationGenerator:
         self.width = float(width)
         self.height = float(height)
         self.n_cities = int(n_cities)
-        self.seed = seed
-        self._rng = random.Random(seed)
+        self.rng = random.Random(seed)
         self.coordinates = []
 
     def generate(self):
-        """Generate and record all city coordinates sequentially."""
         self.coordinates = []
 
         while len(self.coordinates) < self.n_cities:
-            coordinate = (
-                self._rng.uniform(0.0, self.width),
-                self._rng.uniform(0.0, self.height),
+            point = (
+                self.rng.uniform(0, self.width),
+                self.rng.uniform(0, self.height),
             )
+            if point not in self.coordinates:
+                self.coordinates.append(point)
 
-            if coordinate in self.coordinates:
-                continue
-
-            self.coordinates.append(coordinate)
-
-        return [list(c) for c in self.coordinates]
+        return [list(p) for p in self.coordinates]
 
     def generate_and_display(self):
-        """Generate cities and display the construction history."""
         coordinates = self.generate()
 
         print("\nCity generation")
         print("----------------")
-
-        for i, coordinate in enumerate(coordinates):
+        for i, point in enumerate(coordinates, 1):
             print(
-                f"City {i}: "
-                f"({coordinate[0]:.4f}, {coordinate[1]:.4f}) "
-                f"| Recorded cities: {i + 1}/{self.n_cities}"
+                f"City {i-1}: ({point[0]:.4f}, {point[1]:.4f}) "
+                f"| Recorded: {i}/{self.n_cities}"
             )
 
         print("\nFinal city locations")
         print("--------------------")
+        for i, point in enumerate(coordinates):
+            print(f"City {i}: {point}")
 
-        for i, coordinate in enumerate(coordinates):
-            print(f"City {i}: {coordinate}")
-
-        print(f"\nGeneration complete: {len(coordinates)} cities")
-
+        print(f"\nGeneration complete: {self.n_cities} cities")
         return coordinates
 
     def get_coordinates(self):
-        return [list(c) for c in self.coordinates]
+        return [list(p) for p in self.coordinates]
+
