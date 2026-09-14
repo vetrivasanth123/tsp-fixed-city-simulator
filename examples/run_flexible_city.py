@@ -53,23 +53,25 @@ def main():
     print("---------------")
 
     while info["available_actions"]:
+        current_city = info["current_city"]
         action = rng.choice(info["available_actions"])
+        selected_coordinate = instance.coordinates[action]
+
+        print(
+            f"Current city: {current_city} | "
+            f"Available actions: {info['available_actions']} | "
+            f"Selected action: {action} "
+            f"({selected_coordinate[0]:.4f}, {selected_coordinate[1]:.4f})"
+        )
+
         _, reward, terminated, truncated, info = env.step(action)
         rewards.append(reward)
-
-        city = info["current_city"]
-        print(
-            f"Current city: {city} {instance.coordinates[city]} | "
-            f"Available actions: {info['available_actions']} | "
-            f"Selected action: {action}"
-        )
 
     _, reward, terminated, truncated, info = env.step(env.close_action)
     rewards.append(reward)
 
-    city = info["current_city"]
     print(
-        f"Current city: {city} {instance.coordinates[city]} | "
+        f"Current city: {info['current_city']} | "
         f"Available actions: {info['available_actions']} | "
         f"Selected action: close"
     )
