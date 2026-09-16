@@ -8,12 +8,13 @@ The project is developed incrementally, keeping the **TSP instance, environment,
 
 ## Project Status
 
-| Phase   | Description                  | Status              |
-| ------- | ---------------------------- | ------------------- |
-| Phase 1 | Fixed-City TSP Simulator     | ✅ Complete          |
-| Phase 2 | Gymnasium Environment        | ✅ Complete & Frozen |
-| Phase 3 | PPO / Reinforcement Learning | 🔄 Current          |
-| Phase 4 | MTP Extension                | ⏳ Future            |
+| Phase             | Description                      | Status              |
+| ----------------- | -------------------------------- | ------------------- |
+| Phase 1           | Fixed-City TSP Simulator         | ✅ Complete          |
+| Phase 2           | Gymnasium Environment            | ✅ Complete & Frozen |
+| Phase 2 Extension | Flexible City Location Generator | ✅ Complete & Frozen |
+| Phase 3           | PPO / Reinforcement Learning     | 🔄 Current          |
+| Phase 4           | MTP Extension                    | ⏳ Future            |
 
 Phase 3 is the current development phase. Later MTP components are intentionally deferred.
 
@@ -24,6 +25,8 @@ Phase 3 is the current development phase. Later MTP components are intentionally
 The current architecture is:
 
 ```text
+City Location Generator
+      ↓
 TSP Instance
       ↓
    TSP Env
@@ -214,6 +217,91 @@ Phase 2 is therefore considered **complete, validated, and frozen**.
 
 ---
 
+# Phase 2 Extension — Flexible City Location Generator
+
+This extension adds dynamically generated city locations while preserving the existing TSP instance, environment, and simulator architecture.
+
+Implemented:
+
+* User-defined spatial width and height
+* User-defined number of cities
+* Sequential city-coordinate generation
+* Optional random seed for reproducibility
+* Prevention of exact duplicate coordinates
+* Automatic Euclidean distance/cost matrix generation
+* Integration with `TSPInstance`
+* Integration with the existing `TSPEnv` and `TSPSimulator`
+* Step-level trajectory recording
+* Current-city coordinate recording
+* Action, step-cost, and reward recording
+* Final `CLOSE` transition recording
+* Persistence of generated instance and simulation result
+* Replay from the saved `.simulation.json`
+* Visualization using the user-defined spatial dimensions
+
+### City generation
+
+The generator is implemented separately from the simulator:
+
+```text
+CityLocationGenerator
+        ↓
+   TSPInstance
+        ↓
+     TSPEnv
+        ↓
+  TSPSimulator
+```
+
+All city locations are generated **before the TSP episode begins**. City locations do not change during an episode.
+
+The generator uses:
+
+```python
+CityLocationGenerator(width, height, n_cities, seed=None)
+```
+
+Coordinates are generated within:
+
+```text
+0 ≤ x ≤ width
+0 ≤ y ≤ height
+```
+
+No minimum-distance constraint is imposed. Only exact duplicate coordinates are rejected.
+
+### Simulation recording
+
+The simulation records the actual trajectory:
+
+```text
+Current City
+     ↓
+Coordinate Lookup
+     ↓
+Action
+     ↓
+Environment Step
+     ↓
+State / Reward
+     ↓
+Record Step Result
+```
+
+Each recorded step contains the current city, its coordinate, action, step cost, and reward, including the final `CLOSE` transition.
+
+The generated instance and trajectory are stored together in:
+
+```text
+.simulation.json
+```
+
+This allows replay without requiring a separate generated-instance file.
+
+The flexible-city extension is therefore **complete and frozen**, with the existing TSP routing, environment, and simulator architecture preserved.
+
+---
+
 # Phase 3 — PPO / Reinforcement Learning
 
 Phase 3 uses the completed Gymnasium environment as the foundation for reinforcement-learning experiments.
@@ -300,6 +388,7 @@ tsp-fixed-city-simulator/
 │
 ├── tsp/
 │   ├── __init__.py
+│   ├── city_generator.py
 │   ├── instance.py
 │   ├── simulator.py
 │   ├── env.py
@@ -311,7 +400,7 @@ tsp-fixed-city-simulator/
 │   └── five_cities_custom_cost.json
 │
 ├── examples/
-│   ├── run_fixed_city.py
+│   ├── run_flexible_city.py
 │   └── run_visualize.py
 │
 └── tests/
