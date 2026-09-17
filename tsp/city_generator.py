@@ -180,27 +180,25 @@ class CityLocationGenerator:
             dimensions = {
                 "radius": float(self.city_radius)
             }
+            area = math.pi * self.city_radius ** 2
+    
             geometry = {
                 "type": "circle",
                 "center": [float(center[0]), float(center[1])],
                 "radius": float(self.city_radius),
             }
     
-        else:
-            if self.city_shape == "square":
-                width = float(self.city_size)
-                height = float(self.city_size)
-            else:
-                width = float(self.city_width)
-                height = float(self.city_height)
+        elif self.city_shape == "square":
+            width = float(self.city_size)
+            height = float(self.city_size)
+            half_w = width / 2
+            half_h = height / 2
     
             dimensions = {
                 "width": width,
                 "height": height,
             }
-    
-            half_w = width / 2
-            half_h = height / 2
+            area = width * height
     
             geometry = {
                 "type": "polygon",
@@ -212,7 +210,27 @@ class CityLocationGenerator:
                 ],
             }
     
-        area = self._calculate_city_area()
+        else:
+            width = float(self.city_width)
+            height = float(self.city_height)
+            half_w = width / 2
+            half_h = height / 2
+    
+            dimensions = {
+                "width": width,
+                "height": height,
+            }
+            area = width * height
+    
+            geometry = {
+                "type": "polygon",
+                "boundary": [
+                    [center[0] - half_w, center[1] - half_h],
+                    [center[0] + half_w, center[1] - half_h],
+                    [center[0] + half_w, center[1] + half_h],
+                    [center[0] - half_w, center[1] + half_h],
+                ],
+            }
     
         return {
             "city_id": city_id,
@@ -223,6 +241,10 @@ class CityLocationGenerator:
             "rotation": 0.0,
             "geometry": geometry,
             "pickup_nodes": [],
+            "facility": {
+                "location": [float(center[0]), float(center[1])],
+                "type": "temporary_center",
+            },
         }
 
     def _point_inside(self, city, point):
