@@ -70,28 +70,7 @@ def save_simulation(simulator, project_root, trajectory):
         },
     }
 
-    class PresentationEncoder(json.JSONEncoder):
-        def encode(self, obj):
-            if isinstance(obj, list):
-                if all(not isinstance(item, list) for item in obj):
-                    return "[" + ", ".join(self.encode(item) for item in obj) + "]"
-
-                if all(isinstance(item, list) for item in obj):
-                    return (
-                        "[\n"
-                        + ",\n".join(
-                            " " * 12 + self.encode(item)
-                            for item in obj
-                        )
-                        + "\n" + " " * 8 + "]"
-                    )
-
-            return super().encode(obj)
-
-    path.write_text(
-        PresentationEncoder(indent=2).encode(data),
-        encoding="utf-8",
-    )
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 def load_saved_simulation(project_root):
     path = Path(project_root) / ".simulation.json"
