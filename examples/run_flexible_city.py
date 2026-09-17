@@ -46,14 +46,16 @@ def main():
         city_height=args.city_height,
     )
 
+   
     coordinates = generator.generate()
     cities = generator.get_cities()
-
+    
     instance = TSPInstance(
         coordinates,
         name="generated_tsp",
         width=args.width,
         height=args.height,
+        cities=cities,
     )
 
     env = TSPEnv(instance)
