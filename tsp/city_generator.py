@@ -174,7 +174,7 @@ class CityLocationGenerator:
         return dx * dx + dy * dy < r * r
 
 
-     def _create_city(self, city_id):
+    def _create_city(self, city_id):
         center = self._generate_center()
     
         if self.city_shape == "circle":
@@ -233,7 +233,7 @@ class CityLocationGenerator:
                     [center[0] - half_w, center[1] + half_h],
                 ],
             }
-    
+     
         return {
             "city_id": city_id,
             "shape": self.city_shape,
