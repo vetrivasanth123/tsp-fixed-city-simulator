@@ -51,6 +51,7 @@ class TSPInstance:
         if cities is not None:
             if not isinstance(cities, list):
                 raise ValueError("cities must be a list.")
+
             if len(cities) != self.num_cities:
                 raise ValueError(
                     "Number of city definitions must match number of coordinates."
@@ -59,16 +60,49 @@ class TSPInstance:
             for i, city in enumerate(cities):
                 if not isinstance(city, dict):
                     raise ValueError("Each city definition must be a dictionary.")
+
                 if "center" not in city:
                     raise ValueError(f"City {i} is missing 'center'.")
 
                 center = np.asarray(city["center"], dtype=float)
+
                 if center.shape != (2,) or not np.all(np.isfinite(center)):
                     raise ValueError(f"City {i} has an invalid center.")
 
                 if not np.allclose(center, coordinates[i]):
                     raise ValueError(
                         f"City {i} center does not match its coordinate."
+                    )
+
+                # Facility information.
+                if "facility" not in city:
+                    raise ValueError(
+                        f"City {i} is missing 'facility'."
+                    )
+
+                facility = city["facility"]
+
+                if not isinstance(facility, dict):
+                    raise ValueError(
+                        f"City {i} facility must be a dictionary."
+                    )
+
+                if "location" not in facility:
+                    raise ValueError(
+                        f"City {i} facility is missing 'location'."
+                    )
+
+                facility_location = np.asarray(
+                    facility["location"],
+                    dtype=float,
+                )
+
+                if (
+                    facility_location.shape != (2,)
+                    or not np.all(np.isfinite(facility_location))
+                ):
+                    raise ValueError(
+                        f"City {i} has an invalid facility location."
                     )
 
         self.distance_matrix = euclidean_distance_matrix(coordinates)
