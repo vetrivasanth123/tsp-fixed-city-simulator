@@ -13,21 +13,41 @@ import tsp.visualization as visualization
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run a flexible-city TSP simulation."
-    )
+    parser = argparse.ArgumentParser(description="Run a flexible-city TSP simulation.")
+
     parser.add_argument("--width", type=float, required=True)
     parser.add_argument("--height", type=float, required=True)
     parser.add_argument("--n-cities", type=int, required=True)
     parser.add_argument("--seed", type=int, default=None)
+
+    parser.add_argument(
+        "--city-shape",
+        choices=["circle", "square", "rectangle"],
+        required=True,
+    )
+    parser.add_argument("--pickup-nodes", type=int, required=True)
+    parser.add_argument("--city-radius", type=float)
+    parser.add_argument("--city-size", type=float)
+    parser.add_argument("--city-width", type=float)
+    parser.add_argument("--city-height", type=float)
+
     args = parser.parse_args()
 
-    coordinates = CityLocationGenerator(
-        args.width,
-        args.height,
-        args.n_cities,
-        args.seed,
-    ).generate()
+    generator = CityLocationGenerator(
+        width=args.width,
+        height=args.height,
+        n_cities=args.n_cities,
+        seed=args.seed,
+        pickup_nodes_per_city=args.pickup_nodes,
+        city_shape=args.city_shape,
+        city_radius=args.city_radius,
+        city_size=args.city_size,
+        city_width=args.city_width,
+        city_height=args.city_height,
+    )
+
+    coordinates = generator.generate()
+    cities = generator.get_cities()
 
     instance = TSPInstance(
         coordinates,
@@ -35,17 +55,21 @@ def main():
         width=args.width,
         height=args.height,
     )
-    env = TSPEnv(instance)
 
+    env = TSPEnv(instance)
     obs, info = env.reset()
     rng = random.Random()
 
     print("\nProject root:", PROJECT_ROOT)
     print("Instance:", instance.name)
+    print("Grid:", f"{args.width} x {args.height}")
     print("Number of cities:", instance.num_cities)
+    print("City shape:", args.city_shape)
+    print("Pickup nodes per city:", args.pickup_nodes)
 
-    print("\nCoordinates:")
-    print(instance.coordinates)
+    print("\nCities:")
+    for city in cities:
+        print(city)
 
     print("\nCost matrix:")
     print(instance.cost_matrix)
@@ -76,21 +100,17 @@ def main():
 
         obs, reward, terminated, truncated, info = env.step(action)
 
-        step_cost = -reward
-
-        trajectory.append(
-            {
-                "current_city": int(current_city),
-                "current_coordinate": [
-                    float(current_coordinate[0]),
-                    float(current_coordinate[1]),
-                ],
-                "action": int(action),
-                "step_cost": float(step_cost),
-                "reward": float(reward),
-                "visited_mask": obs["visited_mask"].tolist(),
-            }
-        )
+        trajectory.append({
+            "current_city": int(current_city),
+            "current_coordinate": [
+                float(current_coordinate[0]),
+                float(current_coordinate[1]),
+            ],
+            "action": int(action),
+            "step_cost": float(-reward),
+            "reward": float(reward),
+            "visited_mask": obs["visited_mask"].tolist(),
+        })
 
     current_city = info["current_city"]
     current_coordinate = instance.coordinates[current_city]
@@ -98,20 +118,16 @@ def main():
 
     _, reward, terminated, truncated, info = env.step(env.close_action)
 
-    step_cost = -reward
-
-    trajectory.append(
-        {
-            "current_city": int(current_city),
-            "current_coordinate": [
-                float(current_coordinate[0]),
-                float(current_coordinate[1]),
-            ],
-            "action": "CLOSE",
-            "step_cost": float(step_cost),
-            "reward": float(reward),
-        }
-    )
+    trajectory.append({
+        "current_city": int(current_city),
+        "current_coordinate": [
+            float(current_coordinate[0]),
+            float(current_coordinate[1]),
+        ],
+        "action": "CLOSE",
+        "step_cost": float(-reward),
+        "reward": float(reward),
+    })
 
     print(
         f"Current city: {current_city} "
@@ -128,14 +144,8 @@ def main():
     print("Start city:", simulator.start_city)
     print("Tour:", closed_tour)
     print("Closed:", simulator.done)
-    print(
-        "Total cost:",
-        simulator.total_cost,
-    )
-    print(
-        "Total reward:",
-        sum(step["reward"] for step in trajectory),
-    )
+    print("Total cost:", simulator.total_cost)
+    print("Total reward:", sum(x["reward"] for x in trajectory))
 
     visualization.save_simulation(
         simulator,
