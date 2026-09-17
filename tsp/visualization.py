@@ -48,6 +48,7 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 
     return ax
 
+
 def save_simulation(simulator, project_root, trajectory):
     path = Path(project_root) / ".simulation.json"
     instance = simulator.instance
@@ -70,7 +71,76 @@ def save_simulation(simulator, project_root, trajectory):
         },
     }
 
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    def format_json(obj, level=0):
+        indent = "  " * level
+        child_indent = "  " * (level + 1)
+
+        if isinstance(obj, dict):
+            if not obj:
+                return "{}"
+
+            lines = ["{"]
+            items = list(obj.items())
+
+            for i, (key, value) in enumerate(items):
+                formatted_value = format_json(value, level + 1)
+                comma = "," if i < len(items) - 1 else ""
+
+                lines.append(
+                    f'{child_indent}{json.dumps(key)}: '
+                    f'{formatted_value}{comma}'
+                )
+
+            lines.append(f"{indent}}}")
+            return "\n".join(lines)
+
+        if isinstance(obj, list):
+            if not obj:
+                return "[]"
+
+            # Keep simple lists such as visited_mask and tour on one line.
+            if all(not isinstance(item, (list, dict)) for item in obj):
+                return json.dumps(obj, separators=(", ", ": "))
+
+            # Keep coordinate pairs and matrix rows compact.
+            if all(
+                isinstance(item, list)
+                and all(not isinstance(x, (list, dict)) for x in item)
+                for item in obj
+            ):
+                lines = ["["]
+
+                for i, item in enumerate(obj):
+                    comma = "," if i < len(obj) - 1 else ""
+                    lines.append(
+                        f"{child_indent}"
+                        f"{json.dumps(item, separators=(', ', ': '))}"
+                        f"{comma}"
+                    )
+
+                lines.append(f"{indent}]")
+                return "\n".join(lines)
+
+            # General nested-list handling.
+            lines = ["["]
+
+            for i, item in enumerate(obj):
+                comma = "," if i < len(obj) - 1 else ""
+                lines.append(
+                    f"{child_indent}{format_json(item, level + 1)}{comma}"
+                )
+
+            lines.append(f"{indent}]")
+            return "\n".join(lines)
+
+        return json.dumps(obj)
+
+    path.write_text(
+        format_json(data),
+        encoding="utf-8",
+    )
+
+
 
 def load_saved_simulation(project_root):
     path = Path(project_root) / ".simulation.json"
