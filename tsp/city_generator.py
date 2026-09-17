@@ -172,8 +172,7 @@ class CityLocationGenerator:
         dy = cy - closest_y
 
         return dx * dx + dy * dy < r * r
-
-
+        
     def _create_city(self, city_id):
         center = self._generate_center()
     
@@ -181,48 +180,27 @@ class CityLocationGenerator:
             dimensions = {
                 "radius": float(self.city_radius)
             }
-            area = math.pi * self.city_radius ** 2
-    
-            # Boundary is stored for exact replay.
             geometry = {
                 "type": "circle",
                 "center": [float(center[0]), float(center[1])],
                 "radius": float(self.city_radius),
             }
     
-        elif self.city_shape == "square":
-            width = float(self.city_size)
-            height = float(self.city_size)
-            half_w = width / 2
-            half_h = height / 2
-    
-            dimensions = {
-                "width": width,
-                "height": height,
-            }
-            area = width * height
-    
-            geometry = {
-                "type": "polygon",
-                "boundary": [
-                    [center[0] - half_w, center[1] - half_h],
-                    [center[0] + half_w, center[1] - half_h],
-                    [center[0] + half_w, center[1] + half_h],
-                    [center[0] - half_w, center[1] + half_h],
-                ],
-            }
-    
         else:
-            width = float(self.city_width)
-            height = float(self.city_height)
-            half_w = width / 2
-            half_h = height / 2
+            if self.city_shape == "square":
+                width = float(self.city_size)
+                height = float(self.city_size)
+            else:
+                width = float(self.city_width)
+                height = float(self.city_height)
     
             dimensions = {
                 "width": width,
                 "height": height,
             }
-            area = width * height
+    
+            half_w = width / 2
+            half_h = height / 2
     
             geometry = {
                 "type": "polygon",
@@ -233,7 +211,9 @@ class CityLocationGenerator:
                     [center[0] - half_w, center[1] + half_h],
                 ],
             }
-     
+    
+        area = self._calculate_city_area()
+    
         return {
             "city_id": city_id,
             "shape": self.city_shape,
