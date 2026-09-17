@@ -48,6 +48,7 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 
     return ax
 
+
 def save_simulation(simulator, project_root, trajectory):
     path = Path(project_root) / ".simulation.json"
     instance = simulator.instance
@@ -70,7 +71,15 @@ def save_simulation(simulator, project_root, trajectory):
         },
     }
 
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            data,
+            indent=4,
+            ensure_ascii=False,
+        ) + "\n",
+        encoding="utf-8",
+    )
+
 
 def load_saved_simulation(project_root):
     path = Path(project_root) / ".simulation.json"
