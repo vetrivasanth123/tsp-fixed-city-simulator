@@ -46,15 +46,30 @@ class TSPInstance:
         if self.height is not None and np.any(coordinates[:, 1] > self.height):
             raise ValueError("coordinates exceed the specified height.")
 
+        # Complete city-region information.
+        self.cities = cities
         if cities is not None:
             if not isinstance(cities, list):
                 raise ValueError("cities must be a list.")
             if len(cities) != self.num_cities:
                 raise ValueError(
-                    "Number of city records must match number of coordinates."
+                    "Number of city definitions must match number of coordinates."
                 )
 
-        self.cities = cities
+            for i, city in enumerate(cities):
+                if not isinstance(city, dict):
+                    raise ValueError("Each city definition must be a dictionary.")
+                if "center" not in city:
+                    raise ValueError(f"City {i} is missing 'center'.")
+
+                center = np.asarray(city["center"], dtype=float)
+                if center.shape != (2,) or not np.all(np.isfinite(center)):
+                    raise ValueError(f"City {i} has an invalid center.")
+
+                if not np.allclose(center, coordinates[i]):
+                    raise ValueError(
+                        f"City {i} center does not match its coordinate."
+                    )
 
         self.distance_matrix = euclidean_distance_matrix(coordinates)
 
@@ -84,21 +99,26 @@ class TSPInstance:
         if "cities" not in data or not isinstance(data["cities"], list):
             raise ValueError("JSON file must contain a 'cities' list.")
 
-        city_records = data["cities"]
+        city_data = data["cities"]
 
-        # Support new city-region format and old fixed-city format.
-        if city_records and "center" in city_records[0]:
+        # Support both old coordinate-only city data
+        # and the new complete city structure.
+        if all("coordinates" in city for city in city_data):
             coordinates = np.asarray(
-                [city["center"] for city in city_records],
-                dtype=float,
-            )
-            cities = city_records
-        else:
-            coordinates = np.asarray(
-                [city["coordinates"] for city in city_records],
+                [city["coordinates"] for city in city_data],
                 dtype=float,
             )
             cities = None
+        elif all("center" in city for city in city_data):
+            coordinates = np.asarray(
+                [city["center"] for city in city_data],
+                dtype=float,
+            )
+            cities = city_data
+        else:
+            raise ValueError(
+                "Each city must contain either 'coordinates' or 'center'."
+            )
 
         return cls(
             coordinates=coordinates,
