@@ -173,35 +173,75 @@ class CityLocationGenerator:
 
         return dx * dx + dy * dy < r * r
 
-    def _create_city(self, city_id):
-        center = self._generate_center()
 
+     def _create_city(self, city_id):
+        center = self._generate_center()
+    
         if self.city_shape == "circle":
             dimensions = {
                 "radius": float(self.city_radius)
             }
             area = math.pi * self.city_radius ** 2
-
+    
+            # Boundary is stored for exact replay.
+            geometry = {
+                "type": "circle",
+                "center": [float(center[0]), float(center[1])],
+                "radius": float(self.city_radius),
+            }
+    
         elif self.city_shape == "square":
+            width = float(self.city_size)
+            height = float(self.city_size)
+            half_w = width / 2
+            half_h = height / 2
+    
             dimensions = {
-                "width": float(self.city_size),
-                "height": float(self.city_size),
+                "width": width,
+                "height": height,
             }
-            area = self.city_size ** 2
-
+            area = width * height
+    
+            geometry = {
+                "type": "polygon",
+                "boundary": [
+                    [center[0] - half_w, center[1] - half_h],
+                    [center[0] + half_w, center[1] - half_h],
+                    [center[0] + half_w, center[1] + half_h],
+                    [center[0] - half_w, center[1] + half_h],
+                ],
+            }
+    
         else:
+            width = float(self.city_width)
+            height = float(self.city_height)
+            half_w = width / 2
+            half_h = height / 2
+    
             dimensions = {
-                "width": float(self.city_width),
-                "height": float(self.city_height),
+                "width": width,
+                "height": height,
             }
-            area = self.city_width * self.city_height
-
+            area = width * height
+    
+            geometry = {
+                "type": "polygon",
+                "boundary": [
+                    [center[0] - half_w, center[1] - half_h],
+                    [center[0] + half_w, center[1] - half_h],
+                    [center[0] + half_w, center[1] + half_h],
+                    [center[0] - half_w, center[1] + half_h],
+                ],
+            }
+    
         return {
             "city_id": city_id,
             "shape": self.city_shape,
             "area": float(area),
             "dimensions": dimensions,
             "center": [float(center[0]), float(center[1])],
+            "rotation": 0.0,
+            "geometry": geometry,
             "pickup_nodes": [],
         }
 
