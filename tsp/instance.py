@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,7 @@ from .utils import euclidean_distance_matrix
 
 
 class TSPInstance:
-    """TSP instance with configurable edge costs and spatial bounds."""
+    """TSP instance with configurable edge costs, spatial bounds, and city data."""
 
     def __init__(
         self,
@@ -18,6 +19,7 @@ class TSPInstance:
         cost_matrix: np.ndarray | None = None,
         width: float | None = None,
         height: float | None = None,
+        cities: list | None = None,
     ) -> None:
         coordinates = np.asarray(coordinates, dtype=float)
 
@@ -43,6 +45,16 @@ class TSPInstance:
             raise ValueError("coordinates exceed the specified width.")
         if self.height is not None and np.any(coordinates[:, 1] > self.height):
             raise ValueError("coordinates exceed the specified height.")
+
+        if cities is not None:
+            if not isinstance(cities, list):
+                raise ValueError("cities must be a list.")
+            if len(cities) != self.num_cities:
+                raise ValueError(
+                    "Number of city records must match number of coordinates."
+                )
+
+        self.cities = cities
 
         self.distance_matrix = euclidean_distance_matrix(coordinates)
 
@@ -72,10 +84,21 @@ class TSPInstance:
         if "cities" not in data or not isinstance(data["cities"], list):
             raise ValueError("JSON file must contain a 'cities' list.")
 
-        coordinates = np.asarray(
-            [city["coordinates"] for city in data["cities"]],
-            dtype=float,
-        )
+        city_records = data["cities"]
+
+        # Support new city-region format and old fixed-city format.
+        if city_records and "center" in city_records[0]:
+            coordinates = np.asarray(
+                [city["center"] for city in city_records],
+                dtype=float,
+            )
+            cities = city_records
+        else:
+            coordinates = np.asarray(
+                [city["coordinates"] for city in city_records],
+                dtype=float,
+            )
+            cities = None
 
         return cls(
             coordinates=coordinates,
@@ -83,6 +106,7 @@ class TSPInstance:
             cost_matrix=data.get("cost_matrix"),
             width=data.get("width"),
             height=data.get("height"),
+            cities=cities,
         )
 
     def cost(self, city_a: int, city_b: int) -> float:
@@ -104,3 +128,4 @@ class TSPInstance:
                 f"City index {city_index} is out of range "
                 f"for {self.num_cities} cities."
             )
+
