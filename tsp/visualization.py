@@ -54,14 +54,16 @@ def save_simulation(simulator, project_root, trajectory):
     instance = simulator.instance
     rewards = [float(step["reward"]) for step in trajectory]
 
-    data = {
+    data = { 
         "instance": {
             "name": instance.name,
             "coordinates": instance.coordinates.tolist(),
             "cost_matrix": instance.cost_matrix.tolist(),
             "width": instance.width,
             "height": instance.height,
+            "cities": instance.cities,
         },
+
         "trajectory": trajectory,
         "summary": {
             "start_city": int(simulator.start_city),
