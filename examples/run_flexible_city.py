@@ -108,6 +108,16 @@ def main():
                 float(current_coordinate[0]),
                 float(current_coordinate[1]),
             ],
+            "city": {
+                **cities[current_city],
+                "facility": {
+                    "location": [
+                        float(cities[current_city]["center"][0]),
+                        float(cities[current_city]["center"][1]),
+                    ],
+                    "type": "temporary_center",
+                },
+            },
             "action": int(action),
             "step_cost": float(-reward),
             "reward": float(reward),
@@ -126,6 +136,16 @@ def main():
             float(current_coordinate[0]),
             float(current_coordinate[1]),
         ],
+        "city": {
+            **cities[current_city],
+            "facility": {
+                "location": [
+                    float(cities[current_city]["center"][0]),
+                    float(cities[current_city]["center"][1]),
+                ],
+                "type": "temporary_center",
+            },
+        },
         "action": "CLOSE",
         "step_cost": float(-reward),
         "reward": float(reward),
