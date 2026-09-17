@@ -56,13 +56,10 @@ def save_simulation(simulator, project_root, trajectory):
     data = {
         "instance": {
             "name": instance.name,
-            "dimensions": {
-                "width": instance.width,
-                "height": instance.height,
-            },
-            "number_of_cities": instance.num_cities,
             "coordinates": instance.coordinates.tolist(),
             "cost_matrix": instance.cost_matrix.tolist(),
+            "width": instance.width,
+            "height": instance.height,
         },
         "trajectory": trajectory,
         "summary": {
@@ -73,14 +70,7 @@ def save_simulation(simulator, project_root, trajectory):
         },
     }
 
-    path.write_text(
-        json.dumps(
-            data,
-            indent=2,
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 def load_saved_simulation(project_root):
     path = Path(project_root) / ".simulation.json"
