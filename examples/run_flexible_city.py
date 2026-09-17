@@ -37,7 +37,7 @@ def main():
     )
     env = TSPEnv(instance)
 
-    _, info = env.reset()
+    obs, info = env.reset()
     rng = random.Random()
 
     print("\nProject root:", PROJECT_ROOT)
@@ -74,7 +74,7 @@ def main():
             f"Selected action: {action}"
         )
 
-        _, reward, terminated, truncated, info = env.step(action)
+        obs, reward, terminated, truncated, info = env.step(action)
 
         step_cost = -reward
 
@@ -88,6 +88,7 @@ def main():
                 "action": int(action),
                 "step_cost": float(step_cost),
                 "reward": float(reward),
+                "visited_mask": obs["visited_mask"].tolist(),
             }
         )
 
