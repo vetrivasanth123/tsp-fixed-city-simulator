@@ -33,8 +33,8 @@ def main():
         cost_matrix=instance_data["cost_matrix"],
         width=instance_data["width"],
         height=instance_data["height"],
+        cities=instance_data.get("cities"),
     )
-
     actions = [step["action"] for step in trajectory]
     rewards = [step["reward"] for step in trajectory]
 
