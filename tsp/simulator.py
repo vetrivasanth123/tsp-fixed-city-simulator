@@ -63,20 +63,12 @@ class TSPSimulator:
                 f"City {next_city} has already been visited."
             )
 
-        current_facility = self.instance.cities[
-            self.current_city
-        ]["facility"]["location"]
-
-        next_facility = self.instance.cities[
-            next_city
-        ]["facility"]["location"]
-
-        dx = current_facility[0] - next_facility[0]
-        dy = current_facility[1] - next_facility[1]
-
-        facility_cost = (dx * dx + dy * dy) ** 0.5
-
-        self.total_cost += facility_cost
+        step_cost = self.instance.cost(
+            self.current_city,
+            next_city,
+        )
+        
+        self.total_cost += step_cost
 
         self.tour.append(next_city)
         self.current_city = next_city
@@ -98,20 +90,12 @@ class TSPSimulator:
             )
 
         if len(self.tour) > 1:
-            current_facility = self.instance.cities[
-                self.current_city
-            ]["facility"]["location"]
-
-            start_facility = self.instance.cities[
-                self.start_city
-            ]["facility"]["location"]
-
-            dx = current_facility[0] - start_facility[0]
-            dy = current_facility[1] - start_facility[1]
-
-            facility_cost = (dx * dx + dy * dy) ** 0.5
-
-            self.total_cost += facility_cost
+            return_cost = self.instance.cost(
+                self.current_city,
+                self.start_city,
+            )
+            
+            self.total_cost += return_cost
             self.current_city = self.start_city
         
         self.done = True
