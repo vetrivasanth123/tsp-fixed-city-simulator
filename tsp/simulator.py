@@ -98,10 +98,20 @@ class TSPSimulator:
             )
 
         if len(self.tour) > 1:
-            self.total_cost += self.instance.cost(
-                self.current_city,
-                self.start_city,
-            )
+            current_facility = self.instance.cities[
+                self.current_city
+            ]["facility"]["location"]
+
+            start_facility = self.instance.cities[
+                self.start_city
+            ]["facility"]["location"]
+
+            dx = current_facility[0] - start_facility[0]
+            dy = current_facility[1] - start_facility[1]
+
+            facility_cost = (dx * dx + dy * dy) ** 0.5
+
+            self.total_cost += facility_cost
             self.current_city = self.start_city
         
         self.done = True
