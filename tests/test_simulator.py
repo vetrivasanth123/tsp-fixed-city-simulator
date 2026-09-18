@@ -1,4 +1,3 @@
-
 """Tests for the TSP simulator."""
 
 import numpy as np
@@ -10,8 +9,19 @@ from tsp.simulator import TSPSimulator
 
 
 def make_instance(n_cities=5, seed=42, custom_cost=False):
+    width = 10
+    height = 10
+    city_radius = 1.0
+
     coordinates = np.asarray(
-        CityLocationGenerator(10, 10, n_cities, seed=seed).generate(),
+        CityLocationGenerator(
+            width,
+            height,
+            n_cities,
+            seed=seed,
+            city_shape="circle",
+            city_radius=city_radius,
+        ).generate(),
         dtype=float,
     )
 
@@ -114,7 +124,8 @@ def test_close_tour_returns_to_start(simulator):
 
     cost_before = simulator.total_cost
     final_edge = simulator.instance.cost(
-        simulator.current_city, simulator.start_city
+        simulator.current_city,
+        simulator.start_city,
     )
 
     simulator.close_tour()
@@ -201,4 +212,3 @@ def test_state_contains_cost(simulator):
 
     assert required.issubset(state)
     assert state["available_actions"] == simulator.available_actions()
-
