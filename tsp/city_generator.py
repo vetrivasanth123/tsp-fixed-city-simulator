@@ -288,40 +288,43 @@ class CityLocationGenerator:
 
     def generate(self):
         """Generate all city regions and pickup nodes."""
-        self.coordinates = []
-        self.cities = []
-
         max_attempts = 10000
-
-        for city_id in range(self.n_cities):
-            placed = False
-
-            for _ in range(max_attempts):
-                city = self._create_city(city_id)
-
-                if not any(
-                    self._overlap(city, existing)
-                    for existing in self.cities
-                ):
-                    self._generate_pickup_nodes(city)
-                    self.cities.append(city)
-
-                    # Backward-compatible city coordinates.
-                    self.coordinates.append(city["center"])
-
-                    placed = True
+        max_restarts = 100
+    
+        for _ in range(max_restarts):
+            self.coordinates = []
+            self.cities = []
+            success = True
+    
+            for city_id in range(self.n_cities):
+                placed = False
+    
+                for _ in range(max_attempts):
+                    city = self._create_city(city_id)
+    
+                    if not any(
+                        self._overlap(city, existing)
+                        for existing in self.cities
+                    ):
+                        self._generate_pickup_nodes(city)
+                        self.cities.append(city)
+                        self.coordinates.append(city["center"])
+                        placed = True
+                        break
+    
+                if not placed:
+                    success = False
                     break
-
-            if not placed:
-                raise RuntimeError(
-                    f"Could not place city {city_id} after "
-                    f"{max_attempts} random placement attempts. "
-                    f"The input passed the area validation, but a "
-                    f"non-overlapping layout was not found. "
-                    f"Try another seed or adjust the grid/city dimensions."
-                )
-
-        return self.get_coordinates()
+    
+            if success:
+                return self.get_coordinates()
+    
+        raise RuntimeError(
+            f"Could not generate {self.n_cities} non-overlapping cities "
+            f"after {max_restarts} layout restarts. "
+            f"Try reducing city dimensions or n_cities, "
+            f"or increasing grid dimensions."
+        )
 
     def get_coordinates(self):
         """Return city center coordinates."""
