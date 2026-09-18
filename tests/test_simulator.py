@@ -13,26 +13,44 @@ def make_instance(n_cities=5, seed=42, custom_cost=False):
     height = 10
     city_radius = 1.0
 
+    generator = CityLocationGenerator(
+        width,
+        height,
+        n_cities,
+        seed=seed,
+        city_shape="circle",
+        city_radius=city_radius,
+    )
+
     coordinates = np.asarray(
-        CityLocationGenerator(
-            width,
-            height,
-            n_cities,
-            seed=seed,
-            city_shape="circle",
-            city_radius=city_radius,
-        ).generate(),
+        generator.generate(),
         dtype=float,
     )
 
+    cities = generator.get_cities()
+
     if custom_cost:
         rng = np.random.default_rng(seed)
-        cost_matrix = rng.uniform(1.0, 100.0, (n_cities, n_cities))
+        cost_matrix = rng.uniform(
+            1.0, 100.0, (n_cities, n_cities)
+        )
         cost_matrix = (cost_matrix + cost_matrix.T) / 2.0
         np.fill_diagonal(cost_matrix, 0.0)
-        return TSPInstance(coordinates, cost_matrix=cost_matrix)
 
-    return TSPInstance(coordinates)
+        return TSPInstance(
+            coordinates,
+            cost_matrix=cost_matrix,
+            width=width,
+            height=height,
+            cities=cities,
+        )
+
+    return TSPInstance(
+        coordinates,
+        width=width,
+        height=height,
+        cities=cities,
+    )
 
 
 @pytest.fixture
