@@ -268,16 +268,10 @@ def animate_simulation(
     )
     final_city = next((a for a in reversed(actions) if a != "CLOSE"), start_city)
 
-    ax.scatter(xy[:, 0], xy[:, 1], s=100, color=gray, zorder=3)
-    ax.scatter(
-        [xy[start_city, 0]], [xy[start_city, 1]],
-        s=220, color=green, edgecolors=edge, linewidths=1.5, zorder=6
-    )
+    ax.scatter([xy[start_city, 0]], [xy[start_city, 1]], s=280, marker="*", color=green, edgecolors=edge, linewidths=1.2, zorder=8)
+
     if final_city != start_city:
-        ax.scatter(
-            [xy[final_city, 0]], [xy[final_city, 1]],
-            s=220, color=red, edgecolors=edge, linewidths=1.5, zorder=6
-        )
+        ax.scatter([xy[final_city, 0]], [xy[final_city, 1]], s=280, marker="*", color=red, edgecolors=edge, linewidths=1.2, zorder=8)
 
     line, = ax.plot([], [], linewidth=2.8, color=blue)
     current, = ax.plot([], [], "o", markersize=12, color=green, zorder=7)
