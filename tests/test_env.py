@@ -1,4 +1,3 @@
-
 """Tests for the TSP Gymnasium environment."""
 
 import numpy as np
@@ -11,19 +10,48 @@ from tsp.simulator import TSPSimulator
 
 
 def make_instance(n_cities=5, seed=42, custom_cost=False):
+    width = 10
+    height = 10
+    city_radius = 1.0
+
+    generator = CityLocationGenerator(
+        width,
+        height,
+        n_cities,
+        seed=seed,
+        city_shape="circle",
+        city_radius=city_radius,
+    )
+
     coordinates = np.asarray(
-        CityLocationGenerator(10, 10, n_cities, seed=seed).generate(),
+        generator.generate(),
         dtype=float,
     )
 
+    cities = generator.get_cities()
+
     if custom_cost:
         rng = np.random.default_rng(seed)
-        cost_matrix = rng.uniform(1.0, 100.0, (n_cities, n_cities))
+        cost_matrix = rng.uniform(
+            1.0, 100.0, (n_cities, n_cities)
+        )
         cost_matrix = (cost_matrix + cost_matrix.T) / 2.0
         np.fill_diagonal(cost_matrix, 0.0)
-        return TSPInstance(coordinates, cost_matrix=cost_matrix)
 
-    return TSPInstance(coordinates)
+        return TSPInstance(
+            coordinates,
+            cost_matrix=cost_matrix,
+            width=width,
+            height=height,
+            cities=cities,
+        )
+
+    return TSPInstance(
+        coordinates,
+        width=width,
+        height=height,
+        cities=cities,
+    )
 
 
 @pytest.fixture
@@ -105,7 +133,9 @@ def test_complete_tour(env):
     assert obs["visited_mask"].sum() == n_cities
     assert not info["available_actions"]
 
-    obs, reward, terminated, truncated, info = env.step(env.close_action)
+    obs, reward, terminated, truncated, info = env.step(
+        env.close_action
+    )
 
     assert terminated and not truncated
     assert reward < 0
@@ -121,10 +151,14 @@ def test_reward_matches_tour_cost(env):
     total_reward = 0.0
 
     while info["available_actions"]:
-        _, reward, _, _, info = env.step(info["available_actions"][0])
+        _, reward, _, _, info = env.step(
+            info["available_actions"][0]
+        )
         total_reward += reward
 
-    _, reward, terminated, truncated, info = env.step(env.close_action)
+    _, reward, terminated, truncated, info = env.step(
+        env.close_action
+    )
     total_reward += reward
 
     assert terminated and not truncated
@@ -186,4 +220,3 @@ def test_custom_cost_environment():
     assert reward == pytest.approx(
         -instance.cost(current_city, action)
     )
-
