@@ -315,9 +315,10 @@ class CityLocationGenerator:
             if not placed:
                 raise RuntimeError(
                     f"Could not place city {city_id} after "
-                    f"{max_attempts} attempts. "
-                    f"Try reducing city dimensions or n_cities, "
-                    f"or increasing grid dimensions."
+                    f"{max_attempts} random placement attempts. "
+                    f"The input passed the area validation, but a "
+                    f"non-overlapping layout was not found. "
+                    f"Try another seed or adjust the grid/city dimensions."
                 )
 
         return self.get_coordinates()
