@@ -46,14 +46,6 @@ def plot_cities(instance, ax=None):
                 raise ValueError(f"Unsupported city shape: {shape}")
 
             ax.add_patch(patch)
-
-            # City center
-            ax.scatter(
-                center[0], center[1],
-                s=70,
-                zorder=4,
-            )
-
             ax.annotate(
                 str(city["city_id"]),
                 center,
