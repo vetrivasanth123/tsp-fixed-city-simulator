@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Circle, Rectangle
 
 from .utils import tour_cost
 
@@ -14,11 +15,87 @@ def plot_cities(instance, ax=None):
     if ax is None:
         _, ax = plt.subplots()
 
-    xy = np.asarray(instance.coordinates, dtype=float)
-    ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
+    # New spatial city visualization
+    if instance.cities is not None:
+        for city in instance.cities:
+            center = np.asarray(city["center"], dtype=float)
+            shape = city["shape"]
+            dimensions = city["dimensions"]
 
-    for i, (x, y) in enumerate(xy):
-        ax.annotate(str(i), (x, y), xytext=(7, 7), textcoords="offset points")
+            if shape == "circle":
+                patch = Circle(
+                    center,
+                    dimensions["radius"],
+                    fill=False,
+                    linewidth=2,
+                )
+
+            elif shape in ("square", "rectangle"):
+                width = dimensions.get("width", dimensions.get("size"))
+                height = dimensions.get("height", dimensions.get("size"))
+
+                patch = Rectangle(
+                    (center[0] - width / 2, center[1] - height / 2),
+                    width,
+                    height,
+                    fill=False,
+                    linewidth=2,
+                )
+
+            else:
+                raise ValueError(f"Unsupported city shape: {shape}")
+
+            ax.add_patch(patch)
+
+            # City center
+            ax.scatter(
+                center[0], center[1],
+                s=70,
+                zorder=4,
+            )
+
+            ax.annotate(
+                str(city["city_id"]),
+                center,
+                xytext=(7, 7),
+                textcoords="offset points",
+            )
+
+            # Pickup nodes
+            pickup_nodes = city.get("pickup_nodes", [])
+            if pickup_nodes:
+                pickup_xy = np.asarray(pickup_nodes, dtype=float)
+                ax.scatter(
+                    pickup_xy[:, 0],
+                    pickup_xy[:, 1],
+                    s=35,
+                    marker="o",
+                    zorder=3,
+                )
+
+            # Facility
+            facility = city.get("facility")
+            if facility is not None:
+                fx, fy = facility["location"]
+                ax.scatter(
+                    fx, fy,
+                    s=130,
+                    marker="*",
+                    zorder=6,
+                )
+
+    else:
+        # Backward-compatible old point-city visualization
+        xy = np.asarray(instance.coordinates, dtype=float)
+        ax.scatter(xy[:, 0], xy[:, 1], s=100, zorder=3)
+
+        for i, (x, y) in enumerate(xy):
+            ax.annotate(
+                str(i),
+                (x, y),
+                xytext=(7, 7),
+                textcoords="offset points",
+            )
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
@@ -32,7 +109,6 @@ def plot_cities(instance, ax=None):
     ax.grid(True, alpha=0.3)
     return ax
 
-
 def plot_tour(instance, tour, ax=None, title="TSP Tour"):
     tour = list(tour)
 
@@ -41,7 +117,16 @@ def plot_tour(instance, tour, ax=None, title="TSP Tour"):
 
     ax = plot_cities(instance, ax)
     route = tour + [tour[0]]
-    xy = np.asarray(instance.coordinates)[route]
+    if instance.cities is not None:
+        xy = np.asarray(
+            [
+                instance.cities[i]["facility"]["location"]
+                for i in route
+            ],
+            dtype=float,
+        )
+    else:
+        xy = np.asarray(instance.coordinates)[route]
 
     ax.plot(xy[:, 0], xy[:, 1], marker="o", linewidth=2)
     ax.set_title(f"{title} — Cost: {tour_cost(tour, instance):.4f}")
@@ -161,7 +246,16 @@ def animate_simulation(
     interval=180,
     frames_per_move=12,
 ):
-    xy = np.asarray(instance.coordinates, dtype=float)
+    if instance.cities is not None:
+        xy = np.asarray(
+            [
+                city["facility"]["location"]
+                for city in instance.cities
+            ],
+            dtype=float,
+        )
+    else:
+        xy = np.asarray(instance.coordinates, dtype=float)
 
     fig, (summary_ax, ax) = plt.subplots(
         1, 2, figsize=(10, 6), gridspec_kw={"width_ratios": [1, 3]}
