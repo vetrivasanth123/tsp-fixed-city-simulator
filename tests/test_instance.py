@@ -1,4 +1,3 @@
-
 """Tests for the TSP instance representation and cost abstraction."""
 
 import numpy as np
@@ -11,7 +10,12 @@ from tsp.instance import TSPInstance
 def make_coordinates(width=10, height=10, n_cities=8, seed=42):
     return np.asarray(
         CityLocationGenerator(
-            width, height, n_cities, seed=seed
+            width,
+            height,
+            n_cities,
+            seed=seed,
+            city_shape="circle",
+            city_radius=1.0,
         ).generate(),
         dtype=float,
     )
@@ -114,6 +118,7 @@ def test_custom_cost_matrix_is_supported():
 def test_custom_cost_is_used():
     coordinates = make_coordinates()
     cost_matrix = make_cost_matrix(len(coordinates))
+
     instance = TSPInstance(
         coordinates,
         cost_matrix=cost_matrix,
@@ -204,6 +209,7 @@ def test_negative_cost_matrix_is_rejected():
             coordinates,
             cost_matrix=cost_matrix,
         )
+
 
 def test_instance_stores_spatial_bounds():
     coordinates = make_coordinates(20, 15, 10)
