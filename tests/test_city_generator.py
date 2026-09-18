@@ -20,7 +20,12 @@ def test_invalid_city_count():
 
 
 def test_generates_valid_unique_coordinates():
-    generator = CityLocationGenerator(4, 4, 5, seed=42)
+    generator = CityLocationGenerator(
+        5, 5, 5,
+        seed=42,
+        city_shape="circle",
+        city_radius=1.0,
+    )
     coordinates = generator.generate()
 
     assert len(coordinates) == 5
@@ -29,27 +34,54 @@ def test_generates_valid_unique_coordinates():
 
     coordinates = np.asarray(coordinates)
     assert np.all(coordinates[:, 0] >= 0)
-    assert np.all(coordinates[:, 0] <= 4)
+    assert np.all(coordinates[:, 0] <= 5)
     assert np.all(coordinates[:, 1] >= 0)
-    assert np.all(coordinates[:, 1] <= 4)
+    assert np.all(coordinates[:, 1] <= 5)
 
 
 def test_reproducible_with_seed():
-    a = CityLocationGenerator(4, 4, 5, seed=42).generate()
-    b = CityLocationGenerator(4, 4, 5, seed=42).generate()
+    a = CityLocationGenerator(
+        5, 5, 5,
+        seed=42,
+        city_shape="circle",
+        city_radius=1.0,
+    ).generate()
+
+    b = CityLocationGenerator(
+        5, 5, 5,
+        seed=42,
+        city_shape="circle",
+        city_radius=1.0,
+    ).generate()
 
     assert a == b
 
 
 def test_different_seeds_generate_different_locations():
-    a = CityLocationGenerator(4, 4, 5, seed=42).generate()
-    b = CityLocationGenerator(4, 4, 5, seed=43).generate()
+    a = CityLocationGenerator(
+        5, 5, 5,
+        seed=42,
+        city_shape="circle",
+        city_radius=1.0,
+    ).generate()
+
+    b = CityLocationGenerator(
+        5, 5, 5,
+        seed=43,
+        city_shape="circle",
+        city_radius=1.0,
+    ).generate()
 
     assert a != b
 
 
 def test_get_coordinates():
-    generator = CityLocationGenerator(4, 4, 5, seed=42)
+    generator = CityLocationGenerator(
+        5, 5, 5,
+        seed=42,
+        city_shape="circle",
+        city_radius=1.0,
+    )
     coordinates = generator.generate()
 
     assert generator.get_coordinates() == coordinates
