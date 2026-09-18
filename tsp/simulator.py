@@ -49,7 +49,7 @@ class TSPSimulator:
         ]
 
     def step(self, next_city: int) -> dict[str, Any]:
-        """Move to an unvisited city."""
+        """Move from the current city's facility to the next city's facility."""
 
         if self.done:
             raise RuntimeError(
@@ -63,10 +63,20 @@ class TSPSimulator:
                 f"City {next_city} has already been visited."
             )
 
-        self.total_cost += self.instance.cost(
-            self.current_city,
-            next_city,
-        )
+        current_facility = self.instance.cities[
+            self.current_city
+        ]["facility"]["location"]
+
+        next_facility = self.instance.cities[
+            next_city
+        ]["facility"]["location"]
+
+        dx = current_facility[0] - next_facility[0]
+        dy = current_facility[1] - next_facility[1]
+
+        facility_cost = (dx * dx + dy * dy) ** 0.5
+
+        self.total_cost += facility_cost
 
         self.tour.append(next_city)
         self.current_city = next_city
