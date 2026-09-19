@@ -60,8 +60,9 @@ def instance():
 
 @pytest.fixture
 def simulator(instance):
-    return TSPSimulator(instance, seed=42)
-
+    simulator = TSPSimulator(instance, seed=42)
+    simulator.reset(start_city=0)
+    return simulator
 
 def test_simulator_initial_state(simulator):
     assert simulator.tour == [simulator.start_city]
@@ -71,16 +72,28 @@ def test_simulator_initial_state(simulator):
     assert simulator.done is False
 
 
-def test_reset_creates_random_start(instance):
+def test_reset_uses_specified_start(instance):
     simulator = TSPSimulator(instance, seed=42)
-    state = simulator.reset()
+
+    state = simulator.reset(start_city=2)
+
+    assert simulator.start_city == 2
+    assert simulator.current_city == 2
+    assert simulator.tour == [2]
+    assert state["start_city"] == 2
+    assert state["current_city"] == 2
 
     assert len(simulator.tour) == 1
     assert simulator.tour[0] == simulator.start_city
     assert state["current_city"] == simulator.start_city
     assert simulator.total_cost == pytest.approx(0.0)
 
+def test_reset_requires_start_city(instance):
+    simulator = TSPSimulator(instance, seed=42)
 
+    with pytest.raises(ValueError, match="start_city must be provided"):
+        simulator.reset()
+        
 def test_available_actions_excludes_visited_city(simulator):
     available = simulator.available_actions()
 
