@@ -104,6 +104,8 @@ def main():
 
         obs, reward, terminated, truncated, info = env.step(action)
 
+        transition = info["transition"]
+        
         trajectory.append({
             "current_city": int(current_city),
             "current_coordinate": [
@@ -120,12 +122,22 @@ def main():
                     "type": "temporary_center",
                 },
             },
-            "action": int(action),
+            "available_actions": list(transition["available_actions"]),
+            "intended_action": int(transition["intended_action"]),
+            "transition_probabilities": {
+                str(k): float(v)
+                for k, v in transition["transition_probabilities"].items()
+            },
+            "slip_probabilities": {
+                str(k): float(v)
+                for k, v in transition["slip_probabilities"].items()
+            },
+            "actual_action": int(transition["actual_action"]),
+            "slipped": bool(transition["slipped"]),
             "step_cost": float(-reward),
             "reward": float(reward),
             "visited_mask": obs["visited_mask"].tolist(),
         })
-
     current_city = info["current_city"]
     current_coordinate = instance.coordinates[current_city]
     available_actions = info["available_actions"]
