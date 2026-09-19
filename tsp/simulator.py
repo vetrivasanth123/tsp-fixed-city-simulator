@@ -154,33 +154,33 @@ class TSPSimulator:
 
         return actual_action, transition_info  
         
-    def step(self, next_city: int) -> dict[str, Any]:
-        """Move from the current city's facility to the next city's facility."""
-
+    def step(self, intended_action: int) -> dict[str, Any]:
+        """Execute an intended action through the stochastic transition kernel."""
+    
         if self.done:
             raise RuntimeError(
                 "Episode is already complete. Call reset()."
             )
-
-        self._validate_city(next_city)
-
-        if next_city in self.tour:
-            raise ValueError(
-                f"City {next_city} has already been visited."
-            )
-
+    
+        actual_action, transition_info = self.transition_kernel(
+            intended_action
+        )
+    
         step_cost = self.instance.cost(
             self.current_city,
-            next_city,
+            actual_action,
         )
-        
+    
         self.total_cost += step_cost
-
-        self.tour.append(next_city)
-        self.current_city = next_city
-
-        return self.state()
-
+    
+        self.tour.append(actual_action)
+        self.current_city = actual_action
+    
+        state = self.state()
+        state["transition_info"] = transition_info
+    
+        return state
+        
     def close_tour(self) -> dict[str, Any]:
         """Return to the starting city and complete the tour."""
 
