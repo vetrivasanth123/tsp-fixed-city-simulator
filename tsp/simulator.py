@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 import random
+import math
 
 from .instance import TSPInstance
 
@@ -13,9 +14,18 @@ class TSPSimulator:
         self,
         instance: TSPInstance,
         seed: int | None = None,
+        kappa: float = 0.9,
+        beta: float = 0.9,
     ) -> None:
         self.instance = instance
         self._rng = random.Random(seed)
+        self.kappa = kappa
+        self.beta = beta
+        if not 0 < self.kappa <= 1:
+            raise ValueError("kappa must satisfy 0 < kappa <= 1.")
+        
+        if not 0 <= self.beta <= 1:
+            raise ValueError("beta must satisfy 0 <= beta <= 1.")
         self.reset()
 
     def reset(self) -> dict[str, Any]:
@@ -47,7 +57,100 @@ class TSPSimulator:
             for city in range(self.instance.num_cities)
             if city not in visited
         ]
+        
+    def transition_kernel(
+        self,
+        intended_action: int,
+    ) -> tuple[int, dict[str, Any]]:
+        """Sample the actual next city using the stochastic transition kernel."""
 
+        if self.done:
+            raise RuntimeError(
+                "Episode is already complete. Call reset()."
+            )
+
+        available = self.available_actions()
+
+        if intended_action not in available:
+            raise ValueError(
+                f"Intended action {intended_action} is not available. "
+                f"Available actions: {available}"
+            )
+
+        current_location = self.instance.cities[
+            self.current_city
+        ]["facility"]["location"]
+
+        # Calculate the unnormalized slip weight for every valid action.
+        weights = {}
+
+        for candidate in available:
+            candidate_location = self.instance.cities[
+                candidate
+            ]["facility"]["location"]
+
+            squared_distance = sum(
+                (candidate_location[i] - current_location[i]) ** 2
+                for i in range(len(current_location))
+            )
+
+            weights[candidate] = (
+                math.exp(
+                    -self.beta * squared_distance
+                )
+            )
+
+        denominator = sum(weights.values())
+
+        # Slip distribution q(s' | s, a)
+        slip_probabilities = {
+            candidate: weights[candidate] / denominator
+            for candidate in available
+        }
+
+        # Complete transition distribution:
+        # intended action gets kappa,
+        # all other valid actions share (1-kappa) according to q.
+        transition_probabilities = {
+            candidate: (
+                self.kappa
+                if candidate == intended_action
+                else (1.0 - self.kappa) * slip_probabilities[candidate]
+            )
+            for candidate in available
+        }
+        probability_sum = sum(transition_probabilities.values())
+
+        if not math.isclose(
+            probability_sum,
+            1.0,
+            rel_tol=1e-9,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                f"Transition probabilities must sum to 1. "
+                f"Got {probability_sum}."
+            )
+
+        # Sample the actual action from the transition distribution.
+        actual_action = self._rng.choices(
+            population=list(transition_probabilities.keys()),
+            weights=list(transition_probabilities.values()),
+            k=1,
+        )[0]
+
+        transition_info = {
+            "current_city": self.current_city,
+            "available_actions": list(available),
+            "intended_action": intended_action,
+            "slip_probabilities": slip_probabilities,
+            "transition_probabilities": transition_probabilities,
+            "actual_action": actual_action,
+            "slipped": actual_action != intended_action,
+        }
+
+        return actual_action, transition_info  
+        
     def step(self, next_city: int) -> dict[str, Any]:
         """Move from the current city's facility to the next city's facility."""
 
