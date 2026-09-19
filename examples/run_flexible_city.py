@@ -93,7 +93,9 @@ def main():
     while info["available_actions"]:
         current_city = info["current_city"]
         current_coordinate = instance.coordinates[current_city]
-        action = rng.choice(info["available_actions"])
+        available_actions = info["available_actions"]
+    
+        action = rng.choice(available_actions)
 
         obs, reward, terminated, truncated, info = env.step(action)
         
