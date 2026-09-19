@@ -65,15 +65,17 @@ class TSPEnv(gym.Env):
         previous_cost = self.simulator.total_cost
         state = self.simulator.step(action)
         reward = -(self.simulator.total_cost - previous_cost)
-    
+        
+        info = self._info(state)
+        info["transition"] = state["transition_info"]
+        
         return (
             self._observation(state),
             float(reward),
             False,
             False,
-            self._info(state),
+            info,
         )
-
     def _observation(self, state):
         mask = np.zeros(self.instance.num_cities, dtype=np.int8)
         mask[state["visited"]] = 1
