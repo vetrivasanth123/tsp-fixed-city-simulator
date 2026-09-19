@@ -84,36 +84,39 @@ class TSPSimulator:
             self.current_city
         ]["facility"]["location"]
 
-        # Calculate the unnormalized slip weight for every valid action.
+        # Calculate slip weights only for alternatives to the intended action.
+        slip_candidates = [
+            candidate for candidate in available
+            if candidate != intended_action
+        ]
+        
         weights = {}
-
-        for candidate in available:
+        
+        for candidate in slip_candidates:
             candidate_location = self.instance.cities[
                 candidate
             ]["facility"]["location"]
-
+        
             squared_distance = sum(
                 (candidate_location[i] - current_location[i]) ** 2
                 for i in range(len(current_location))
             )
-
-            weights[candidate] = (
-                math.exp(
-                    -self.beta * squared_distance
-                )
+        
+            weights[candidate] = math.exp(
+                -self.beta * squared_distance
             )
-
-        denominator = sum(weights.values())
-
-        # Slip distribution q(s' | s, a)
-        slip_probabilities = {
-            candidate: weights[candidate] / denominator
-            for candidate in available
-        }
-
-        # Complete transition distribution:
-        # intended action gets kappa,
-        # all other valid actions share (1-kappa) according to q.
+        
+        if slip_candidates:
+            denominator = sum(weights.values())
+        
+            slip_probabilities = {
+                candidate: weights[candidate] / denominator
+                for candidate in slip_candidates
+            }
+        else:
+            slip_probabilities = {}
+        
+        # Complete transition distribution.
         transition_probabilities = {
             candidate: (
                 self.kappa
@@ -122,8 +125,9 @@ class TSPSimulator:
             )
             for candidate in available
         }
+        
         probability_sum = sum(transition_probabilities.values())
-
+        
         if not math.isclose(
             probability_sum,
             1.0,
@@ -134,7 +138,6 @@ class TSPSimulator:
                 f"Transition probabilities must sum to 1. "
                 f"Got {probability_sum}."
             )
-
         # Sample the actual action from the transition distribution.
         actual_action = self._rng.choices(
             population=list(transition_probabilities.keys()),
