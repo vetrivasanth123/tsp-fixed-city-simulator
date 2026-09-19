@@ -60,7 +60,7 @@ def env():
 
 
 def test_reset(env):
-    obs, info = env.reset(seed=42)
+    obs, info = env.reset(seed=42, start_city=0)
 
     assert env.observation_space.contains(obs)
     assert obs["visited_mask"].sum() == 1
@@ -75,7 +75,7 @@ def test_action_space(env):
 
 
 def test_step(env):
-    _, info = env.reset(seed=42)
+    _, info = env.reset(seed=42, start_city=0)
     action = info["available_actions"][0]
 
     obs, reward, terminated, truncated, info = env.step(action)
@@ -88,7 +88,7 @@ def test_step(env):
 
 
 def test_state_continuity(env):
-    obs, info = env.reset(seed=42)
+    obs, info = env.reset(seed=42, start_city=0)
 
     for _ in range(3):
         action = info["available_actions"][0]
@@ -105,21 +105,21 @@ def test_state_continuity(env):
 
 
 def test_invalid_action(env):
-    env.reset(seed=42)
+    env.reset(seed=42, start_city=0)
 
     with pytest.raises(ValueError):
         env.step(env.simulator.current_city)
 
 
 def test_invalid_action_range(env):
-    env.reset(seed=42)
+    env.reset(seed=42, start_city=0)
 
     with pytest.raises(ValueError):
         env.step(env.action_space.n)
 
 
 def test_complete_tour(env):
-    obs, info = env.reset(seed=42)
+    obs, info = env.reset(seed=42, start_city=0)
     n_cities = env.instance.num_cities
 
     while info["available_actions"]:
@@ -147,7 +147,7 @@ def test_complete_tour(env):
 
 
 def test_reward_matches_tour_cost(env):
-    _, info = env.reset(seed=42)
+    _, info = env.reset(seed=42, start_city=0)
     total_reward = 0.0
 
     while info["available_actions"]:
@@ -166,11 +166,16 @@ def test_reward_matches_tour_cost(env):
 
 
 def test_seed_reproducibility(env):
-    _, info1 = env.reset(seed=123)
-    _, info2 = env.reset(seed=123)
+    _, info1 = env.reset(seed=123, start_city=0)
 
-    assert info1["start_city"] == info2["start_city"]
+    action = info1["available_actions"][0]
+    _, _, _, _, step_info1 = env.step(action)
 
+    _, info2 = env.reset(seed=123, start_city=0)
+
+    _, _, _, _, step_info2 = env.step(action)
+
+    assert step_info1["transition"] == step_info2["transition"]
 
 def test_environment_owns_simulator(env):
     assert isinstance(env.simulator, TSPSimulator)
@@ -178,7 +183,7 @@ def test_environment_owns_simulator(env):
 
 
 def test_env_uses_same_simulator(env):
-    _, info = env.reset(seed=42)
+    _, info = env.reset(seed=42, start_city=0)
     action = info["available_actions"][0]
 
     obs, _, _, _, info = env.step(action)
@@ -190,14 +195,14 @@ def test_env_uses_same_simulator(env):
 
 
 def test_premature_close_is_rejected(env):
-    env.reset(seed=42)
+    env.reset(seed=42, start_city=0)
 
     with pytest.raises(ValueError):
         env.step(env.close_action)
 
 
 def test_available_actions_match_visited_mask(env):
-    obs, info = env.reset(seed=42)
+    obs, info = env.reset(seed=42, start_city=0)
 
     for city in range(env.instance.num_cities):
         if city in info["tour"]:
@@ -211,7 +216,7 @@ def test_custom_cost_environment():
     instance = make_instance(custom_cost=True)
     env = TSPEnv(instance, seed=42)
 
-    _, info = env.reset(seed=42)
+    _, info = env.reset(seed=42, start_city=0)
     action = info["available_actions"][0]
     current_city = info["current_city"]
 
