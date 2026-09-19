@@ -128,7 +128,7 @@ def test_cost_updates_after_step(simulator):
 def test_simulator_uses_custom_cost():
     instance = make_instance(custom_cost=True)
     simulator = TSPSimulator(instance, seed=42)
-
+    simulator.reset(start_city=0)
     current = simulator.current_city
     next_city = simulator.available_actions()[0]
     expected = instance.cost(current, next_city)
