@@ -28,10 +28,14 @@ class TSPSimulator:
             raise ValueError("beta must satisfy 0 <= beta <= 1.")
         self.reset()
 
-    def reset(self) -> dict[str, Any]:
-        """Start a new episode at a random city."""
-
-        self.start_city = self._rng.randrange(self.instance.num_cities)
+    def reset(self, start_city: int | None = None) -> dict[str, Any]:
+        """Start a new episode at the specified start city."""
+    
+        if start_city is None:
+            raise ValueError("start_city must be provided.")
+    
+        self._validate_city(start_city)
+        self.start_city = start_city
         self.tour = [self.start_city]
         self.current_city = self.start_city
         self.total_cost = 0.0
