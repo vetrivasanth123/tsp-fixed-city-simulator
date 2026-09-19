@@ -266,24 +266,36 @@ class CityLocationGenerator:
     def _generate_pickup_nodes(self, city):
         nodes = []
 
-        while len(nodes) < self.pickup_nodes_per_city:
+        max_attempts = 10000
+        attempts = 0
+        
+        while len(nodes) < self.pickup_nodes_per_city and attempts < max_attempts:
+            attempts += 1
+        
             if city["shape"] == "circle":
                 r = city["dimensions"]["radius"]
                 x = city["center"][0] + self.rng.uniform(-r, r)
                 y = city["center"][1] + self.rng.uniform(-r, r)
-
+        
             else:
                 w = city["dimensions"]["width"]
                 h = city["dimensions"]["height"]
-
+        
                 x = city["center"][0] + self.rng.uniform(-w / 2, w / 2)
                 y = city["center"][1] + self.rng.uniform(-h / 2, h / 2)
-
+        
             point = [float(x), float(y)]
-
+        
             if self._point_inside(city, point) and point not in nodes:
                 nodes.append(point)
-
+        
+        if len(nodes) < self.pickup_nodes_per_city:
+            raise RuntimeError(
+                f"Could not generate {self.pickup_nodes_per_city} pickup nodes "
+                f"inside city {city['city_id']} after {max_attempts} attempts. "
+                f"Try reducing pickup_nodes_per_city or increasing city dimensions."
+            )
+        
         city["pickup_nodes"] = nodes
 
     def generate(self):
