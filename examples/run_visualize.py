@@ -35,7 +35,11 @@ def main():
         height=instance_data["height"],
         cities=instance_data.get("cities"),
     )
-    actions = [step["action"] for step in trajectory]
+    actions = [
+        step["actual_action"] if "actual_action" in step else step["action"]
+        for step in trajectory
+    ]
+    
     rewards = [step["reward"] for step in trajectory]
 
     print("Visualizing saved simulation:")
