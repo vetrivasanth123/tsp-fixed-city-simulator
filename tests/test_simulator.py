@@ -243,3 +243,35 @@ def test_state_contains_cost(simulator):
 
     assert required.issubset(state)
     assert state["available_actions"] == simulator.available_actions()
+    
+def test_stochastic_multi_seed_valid_tours(instance):
+    for seed in range(10):
+        simulator = TSPSimulator(instance, seed=seed)
+        simulator.reset(start_city=0)
+
+        while simulator.available_actions():
+            action = simulator.available_actions()[0]
+            simulator.step(action)
+
+        simulator.close_tour()
+
+        assert len(simulator.tour) == instance.num_cities + 1
+        assert len(set(simulator.tour[:-1])) == instance.num_cities
+        assert simulator.tour[0] == simulator.tour[-1]
+        assert simulator.done
+        assert simulator.total_cost >= 0
+        
+def test_transition_probabilities_are_valid(instance):
+    simulator = TSPSimulator(instance, seed=42)
+    simulator.reset(start_city=0)
+
+    for _ in range(instance.num_cities - 1):
+        action = simulator.available_actions()[0]
+        _, info = simulator.step(action)
+
+        probabilities = info["transition_info"]["transition_probabilities"]
+
+        assert set(probabilities) == set(map(int, info["transition_info"]["available_actions"]))
+        assert abs(sum(probabilities.values()) - 1.0) < 1e-9
+        assert all(0.0 <= p <= 1.0 for p in probabilities.values())        
+        
