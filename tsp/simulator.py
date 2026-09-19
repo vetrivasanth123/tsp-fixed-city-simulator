@@ -26,7 +26,6 @@ class TSPSimulator:
         
         if not 0 <= self.beta <= 1:
             raise ValueError("beta must satisfy 0 <= beta <= 1.")
-        self.reset()
 
     def reset(self, start_city: int | None = None) -> dict[str, Any]:
         """Start a new episode at the specified start city."""
