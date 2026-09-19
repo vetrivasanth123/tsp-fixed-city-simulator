@@ -31,13 +31,13 @@ class TSPEnv(gym.Env):
             ),
         })
 
-    def reset(self, *, seed=None, options=None):
+    def reset(self, *, seed=None, options=None, start_city=None):
         super().reset(seed=seed)
 
         if seed is not None:
             self.simulator._rng.seed(seed)
 
-        state = self.simulator.reset()
+        state = self.simulator.reset(start_city=start_city)
         return self._observation(state), self._info(state)
 
     def step(self, action):
