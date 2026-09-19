@@ -95,15 +95,23 @@ def main():
         current_coordinate = instance.coordinates[current_city]
         action = rng.choice(info["available_actions"])
 
+        obs, reward, terminated, truncated, info = env.step(action)
+        
+        transition = info["transition"]
+        
+        actual_action = transition["actual_action"]
+        slipped = transition["slipped"]
+        actual_probability = transition["transition_probabilities"][actual_action]
+        
         print(
             f"Current city: {current_city} "
             f"({current_coordinate[0]:.4f}, {current_coordinate[1]:.4f}) | "
-            f"Available actions: {info['available_actions']} | "
-            f"Selected action: {action}"
+            f"Available actions: {available_actions} | "
+            f"Intended: {action} | "
+            f"Actual: {actual_action} | "
+            f"Slip: {slipped} | "
+            f"P(actual): {actual_probability:.4f}"
         )
-
-        obs, reward, terminated, truncated, info = env.step(action)
-
         transition = info["transition"]
         
         trajectory.append({
