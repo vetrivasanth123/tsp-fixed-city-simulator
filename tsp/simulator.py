@@ -117,14 +117,19 @@ class TSPSimulator:
             slip_probabilities = {}
         
         # Complete transition distribution.
-        transition_probabilities = {
-            candidate: (
-                self.kappa
-                if candidate == intended_action
-                else (1.0 - self.kappa) * slip_probabilities[candidate]
-            )
-            for candidate in available
-        }
+        if not slip_candidates:
+            transition_probabilities = {
+                intended_action: 1.0
+            }
+        else:
+            transition_probabilities = {
+                candidate: (
+                    self.kappa
+                    if candidate == intended_action
+                    else (1.0 - self.kappa) * slip_probabilities[candidate]
+                )
+                for candidate in available
+            }
         
         probability_sum = sum(transition_probabilities.values())
         
