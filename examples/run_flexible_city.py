@@ -59,9 +59,10 @@ def main():
     )
 
     env = TSPEnv(instance)
+    rng = random.Random(args.seed)
     start_city = rng.randrange(instance.num_cities)
     obs, info = env.reset(start_city=start_city)
-    rng = random.Random(args.seed)
+    
     
     print("\nProject root:", PROJECT_ROOT)
     print("Instance:", instance.name)
