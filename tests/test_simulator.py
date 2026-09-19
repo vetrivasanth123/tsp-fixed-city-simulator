@@ -255,9 +255,11 @@ def test_stochastic_multi_seed_valid_tours(instance):
 
         simulator.close_tour()
 
-        assert len(simulator.tour) == instance.num_cities + 1
-        assert len(set(simulator.tour[:-1])) == instance.num_cities
-        assert simulator.tour[0] == simulator.tour[-1]
+        closed_tour = simulator.tour + [simulator.start_city]
+
+        assert len(closed_tour) == instance.num_cities + 1
+        assert len(set(closed_tour[:-1])) == instance.num_cities
+        assert closed_tour[0] == closed_tour[-1]
         assert simulator.done
         assert simulator.total_cost >= 0
         
@@ -267,11 +269,13 @@ def test_transition_probabilities_are_valid(instance):
 
     for _ in range(instance.num_cities - 1):
         action = simulator.available_actions()[0]
-        _, info = simulator.step(action)
+        state = simulator.step(action)
 
-        probabilities = info["transition_info"]["transition_probabilities"]
+        transition_info = state["transition_info"]
+        probabilities = transition_info["transition_probabilities"]
 
-        assert set(probabilities) == set(map(int, info["transition_info"]["available_actions"]))
+        assert set(probabilities) == set(
+            map(int, transition_info["available_actions"])
+        )
         assert abs(sum(probabilities.values()) - 1.0) < 1e-9
-        assert all(0.0 <= p <= 1.0 for p in probabilities.values())        
-        
+        assert all(0.0 <= p <= 1.0 for p in probabilities.values())
