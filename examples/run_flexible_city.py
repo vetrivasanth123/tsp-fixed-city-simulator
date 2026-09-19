@@ -165,11 +165,20 @@ def main():
         "reward": float(reward),
     })
 
+    transition = info["transition"]
+
+    actual_action = transition["actual_action"]
+    slipped = transition["slipped"]
+    actual_probability = transition["transition_probabilities"][actual_action]
+    
     print(
         f"Current city: {current_city} "
         f"({current_coordinate[0]:.4f}, {current_coordinate[1]:.4f}) | "
         f"Available actions: {available_actions} | "
-        f"Selected action: close"
+        f"Intended: {action} | "
+        f"Actual: {actual_action} | "
+        f"Slip: {slipped} | "
+        f"P(actual): {actual_probability:.4f}"
     )
 
     simulator = env.simulator
